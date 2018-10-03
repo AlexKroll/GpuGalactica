@@ -1,0 +1,36 @@
+
+#include "csParticle.txt"
+#include "csEmitProperties.txt"
+
+
+RWStructuredBuffer<Particle> particles : register(u0);
+
+AppendStructuredBuffer<int> FreeIndices : register(u1);
+
+[numthreads(MAX_PARTICLES,1,1)]
+
+
+
+void Main( uint3 threadId : SV_GroupThreadID )
+{
+	uint ind = threadId.x;
+
+	if( particles[ind].time > 0.0f )
+	{
+		particles[ind].time -= Time;
+
+#ifndef PARTICLE_DONT_FACTOR
+		particles[ind].factor01 = 1.0f - particles[ind].time * particles[ind].life;
+#endif
+		particles[ind].pos += particles[ind].vel * Time;
+
+		particles[ind].vel += particles[ind].accel * Time;
+
+		if( particles[ind].time < 0.0f )
+		{	particles[ind].pos.xyz = -9999999.0f;		//  hide particle from viewport space
+			particles[ind].pos.w = 0.0f;
+
+			FreeIndices.Append(ind);
+		}
+	}
+}

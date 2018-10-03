@@ -1,0 +1,51 @@
+
+#include "vsCamera.txt"
+#include "ParticleEmitters/csParticle.txt"
+#include "ParticleEmitters/csEmitProperties.txt"
+
+StructuredBuffer<Particle> particles : register(t0);
+
+
+
+void Main(in float4 VertexPos: POSITION, in float2 VertexTexCrd: TEXCOORD0, in uint ind: SV_InstanceID,
+			out float4 OutPos: SV_Position, out float2 TexCoord: TEXCOORD0, out float4 OutColor: COLOR0)
+{
+#ifdef PARTICLE_MWORLD
+	float3 Pos = mul( float4(particles[ind].pos.xyz, 1), mWorld );
+#else
+	float3 Pos = particles[ind].pos;
+#endif
+
+	Pos = mul( float4(Pos, 1), mView );
+
+	Pos.xy += VertexPos.xy * particles[ind].pos.ww;
+
+	OutPos = mul( float4(Pos,1), mProj );
+
+	TexCoord.y = VertexTexCrd.y;
+	TexCoord.x = VertexTexCrd.x * UvMulX + particles[ind].uv_add_x;
+
+	float fact = particles[ind].factor01;
+
+#ifdef PARTICLE_PROC_ALPHA
+	float alpha = ( fact < AFadeInOut ) ? fact * AFadeIn : AFadeOutMax + fact * AFadeOut;
+	alpha = saturate(alpha);
+	OutColor.a = alpha;
+#else
+	OutColor.a = Color.a;
+#endif
+
+
+#ifdef PARTICLE_PROC_COLOR
+	OutColor.rgb = lerp(Color1, Color2, fact);
+	if( fact < 0.02 )
+		OutColor.rgb *= 0.5;
+#else
+	OutColor.rgb = Color.rgb;
+#endif
+
+
+#ifdef PARTICLE_COLOR_MUL_ALPHA
+	OutColor.rgb *= alpha;
+#endif
+}

@@ -1,0 +1,7 @@
+
+cbuffer Global : register(b2)
+{
+	float4x3  mView		: register(c0);
+	float4x4  mProj		: register(c3);
+	float4x4  mViewProj : register(c7);
+};

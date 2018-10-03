@@ -1,0 +1,37 @@
+
+#include "csParticle.txt"
+
+
+RWStructuredBuffer<Particle> particles : register(u0);
+
+Texture1D RandomTex: register(t0);
+sampler Samp: register(s0);
+
+AppendStructuredBuffer<int> FreeIndices : register(u1);
+
+[numthreads(MAX_PARTICLES, 1, 1)]
+
+
+
+void Main( uint3 threadId : SV_GroupThreadID )
+{
+	uint ind = threadId.x;
+
+	particles[ind].time = -1.0f;
+
+	particles[ind].pos.xyz = -9999999.0f;  // put outside of the view
+	particles[ind].pos.w = 0.0f;
+
+	particles[ind].vel = 0.0f;
+
+	particles[ind].accel = 0.0f;
+
+	particles[ind].uv_add_x = 0.0f;
+
+	float u = (float)ind / (float)MAX_PARTICLES;
+	particles[ind].random = RandomTex.SampleLevel(Samp,u,0).x;
+
+	FreeIndices.Append(ind);
+}
+
+

@@ -1,0 +1,50 @@
+
+// It should correspond to struct EmitProps in file ParticleEmitter.h
+
+
+cbuffer Emitter : register(b0)
+{
+	float4 Pos  : packoffset(c0);
+	float4 Size : packoffset(c1);
+
+	float pack1x      : packoffset(c2.x);
+	float Time        : packoffset(c2.y);
+	float UvMulX      : packoffset(c2.z);
+	int   NumTexFrames : packoffset(c2.w);
+
+	float Life1       : packoffset(c3.x);
+	float Life2       : packoffset(c3.y);
+	float Radius1     : packoffset(c3.z);
+	float Radius2     : packoffset(c3.w);
+
+	float Size1       : packoffset(c4.x);
+	float Size2       : packoffset(c4.y);
+	float pack4z      : packoffset(c4.z);
+	float pack4w      : packoffset(c4.w);
+
+	float4 Randoms    : packoffset(c5);
+
+	float Velocity1   : packoffset(c6.x);
+	float Velocity2   : packoffset(c6.y);
+	float pack6z      : packoffset(c6.z);
+	float pack6w      : packoffset(c6.w);
+
+	float AFadeInOut  : packoffset(c7.x);		// .x  1-alpha_fade in/out,   .y  alpha_in,   .z  1-alpha_out
+	float AFadeIn     : packoffset(c7.y);
+	float AFadeOut    : packoffset(c7.z);
+	float AFadeOutMax : packoffset(c7.w);
+
+	float4 Color      : packoffset(c8);
+
+	float3 VelocityDir : packoffset(c9);
+	float FactorPow   : packoffset(c9.w);
+
+	float4 Color1     : packoffset(c10);
+	float4 Color2     : packoffset(c11);
+
+	float4x3 mWorld	  : packoffset(c12);
+};
+
+
+
+

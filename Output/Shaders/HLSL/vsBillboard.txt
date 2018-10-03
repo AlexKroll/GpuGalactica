@@ -1,0 +1,18 @@
+
+#include "vsCamera.txt"
+
+
+float4x3 mWorld	: register(c0);
+float4   Size	: register(c3);
+
+
+void Main(in float4 VertexPos: POSITION, in float2 VertexTexCrd: TEXCOORD0,
+			out float4 OutPos: SV_Position, out float2 OutTexCrd: TEXCOORD0)
+{
+	OutPos = VertexPos * Size;
+	OutPos.xyz = mul(OutPos, mWorld);
+	OutPos = mul(OutPos, mViewProj);
+	OutTexCrd = VertexTexCrd;
+}
+
+

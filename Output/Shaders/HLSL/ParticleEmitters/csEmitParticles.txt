@@ -1,0 +1,108 @@
+
+#include "csParticle.txt"
+#include "csEmitProperties.txt"
+
+
+RWStructuredBuffer<Particle> particles : register(u0);
+
+ConsumeStructuredBuffer<int> FreeIndices : register(u1);
+
+Texture1D RandomTex: register(t0);
+sampler Samp: register(s0);
+
+static uint ind;
+
+#include "csMath.txt"
+
+
+
+
+[numthreads(INTENSITY, 1, 1)]
+
+
+void Main( uint3 threadId : SV_GroupThreadID )
+{
+	uint N, size;
+	FreeIndices.GetDimensions( N, size );
+	int n = (int)N;
+	if( n <= 0 )
+		return;
+
+	ind = FreeIndices.Consume();
+
+#ifdef PARTICLE_POS_CUBE
+	particles[ind].pos.xyz = RandomCube(Size.xyz);
+#endif
+
+#ifdef PARTICLE_POS_SPHERE
+	particles[ind].pos.xyz = RandomSphere(Radius1, Radius2);
+	particles[ind].pos.xyz *= Size.xyz;
+#endif
+
+#ifdef PARTICLE_POS_SPHERE_HOLLOW
+	particles[ind].pos.xyz = RandomSphere(Radius1);
+	particles[ind].pos.xyz *= Size.xyz;
+#endif
+
+
+#ifdef PARTICLE_VELOCITY
+	float velocity = RandomF(Velocity1, Velocity2);
+	particles[ind].vel.xyz = VelocityDir * velocity;
+#endif
+
+	particles[ind].vel.w = Size.w;
+
+
+#ifdef PARTICLE_SIZE_RANDOM
+	particles[ind].pos.w = RandomF(Size1, Size2);
+#else
+	particles[ind].pos.w = Size1;
+#endif
+
+
+#ifdef PARTICLE_LIFE_RANDOM
+	particles[ind].time = RandomF(Life1, Life2);
+#else
+	particles[ind].time = Life1;
+#endif
+	particles[ind].life = 1.0f / particles[ind].time;
+
+#ifdef PARTICLE_RANDOM_TFRAME
+	int frame = RandomI(NumTexFrames);
+	particles[ind].uv_add_x = (float)frame * UvMulX;
+#endif
+
+
+#ifdef PARTICLE_POS_SPIRAL
+
+	#ifdef PARTICLE_POS_SPIRAL_RANDOM
+		float F = RandomF01();
+	#else
+		float F = (float)ind / (float)INTENSITY + 0.3f;
+	#endif
+
+	float R = 30.0 + pow(F,3.0f) * Size.x;
+	float A = pow(F,0.8f) * 12.0f + Size.y;
+	float x = sin(A) * R;
+	float z = cos(A) * R;
+
+	float3 pos = RandomSphere(Radius1, Radius2);
+
+#ifdef PARTICLE_SPIRAL_CN
+	pos *= pow(1-F, 0.4);
+	particles[ind].pos.w *= pow(1-F, 0.4f) + 1.0f;
+	if( F < 0.3f )
+		particles[ind].pos.w *= 0.5f;
+#endif
+
+	particles[ind].pos.xyz = pos + float3(x, 0, z) + Pos.xyz;
+
+	#ifdef PARTICLE_FACTOR_POW
+		particles[ind].factor01 = pow(F, FactorPow);
+	#endif
+#endif
+}
+
+
+
+

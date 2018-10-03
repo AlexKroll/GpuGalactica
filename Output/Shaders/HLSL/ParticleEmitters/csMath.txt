@@ -1,0 +1,63 @@
+
+
+inline float PartRandom()
+{
+	float random = RandomTex.SampleLevel(Samp, particles[ind].random, 0).x;
+	particles[ind].random = random + Randoms.x;
+	return random;
+}
+
+
+inline float3 PartRandom3()
+{
+	float4 random = RandomTex.SampleLevel(Samp, particles[ind].random, 0);
+	particles[ind].random = random.w + Randoms.y;
+	return random.xyz;
+}
+
+
+float RandomF(float fmin, float fmax)
+{
+	return lerp(fmin, fmax, PartRandom());
+}
+
+
+float RandomF01()
+{
+	float random = PartRandom();
+	return random;
+}
+
+
+int RandomI(int imax)
+{
+	float F = RandomF01() * (float)imax;
+	int I = (int)F;
+	return I;
+}
+
+
+float3 RandomSphere(float radius)
+{
+	float3 pos = PartRandom3();
+
+	pos = normalize(pos*2-1) * radius;
+	return pos;
+}
+
+
+float3 RandomSphere(float radius1, float radius2)
+{
+	float radius = RandomF(radius1, radius2);
+
+	float3 pos = PartRandom3();
+	pos = normalize(pos*2-1) * radius;
+	return pos;
+}
+
+
+float3 RandomCube(float3 size)
+{
+	float3 pos = PartRandom3() * size;
+	return pos;
+}

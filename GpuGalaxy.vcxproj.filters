@@ -1,0 +1,249 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Framework">
+      <UniqueIdentifier>{4785aa84-c972-436f-98c8-cbbcef061239}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Graphics">
+      <UniqueIdentifier>{a55212fc-0d75-47f1-b6a3-db316df68da0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Utils">
+      <UniqueIdentifier>{09d1e46f-55ca-4420-98ea-898b133f72aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Core">
+      <UniqueIdentifier>{4d486f56-6404-406f-87fd-c637d2bee5c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ParallelCompute">
+      <UniqueIdentifier>{580df082-4ee0-49c9-a87d-dc99dfaad43a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Gui">
+      <UniqueIdentifier>{ef7a5ef5-ae34-4d83-bffb-015df3f3eb2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneObjects">
+      <UniqueIdentifier>{1e9604a8-ef17-4505-9f08-60619425dd23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Framework\Math">
+      <UniqueIdentifier>{c570248c-a426-4d49-940a-52a985b348a0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Framework\Utils\Timer.cpp">
+      <Filter>Framework\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\RenderDX11.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuGalaxy.cpp" />
+    <ClCompile Include="Framework\Core\Application.cpp">
+      <Filter>Framework\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ParallelCompute\ParallelCompute.cpp">
+      <Filter>ParallelCompute</Filter>
+    </ClCompile>
+    <ClCompile Include="ParallelCompute\DirectCompute11.cpp">
+      <Filter>ParallelCompute</Filter>
+    </ClCompile>
+    <ClCompile Include="ParallelCompute\OpenCLCompute.cpp">
+      <Filter>ParallelCompute</Filter>
+    </ClCompile>
+    <ClCompile Include="ParallelCompute\CudaCompute.cpp">
+      <Filter>ParallelCompute</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\Texture.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\TextureDX11.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\Render.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Core\Input.cpp">
+      <Filter>Framework\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\FontDX11.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\ShaderProgramDX11.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\FileDDS.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\FileTGA.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Gui.cpp">
+      <Filter>Framework\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Widget.cpp">
+      <Filter>Framework\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\Panel.cpp">
+      <Filter>Framework\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="SetsPanel.cpp" />
+    <ClCompile Include="Framework\Gui\Button.cpp">
+      <Filter>Framework\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\ButtonBox.cpp">
+      <Filter>Framework\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SceneObjects\BaseObject.cpp">
+      <Filter>SceneObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Gui\TextLabel.cpp">
+      <Filter>Framework\Gui</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneObjects\ParticleEmitter.cpp">
+      <Filter>SceneObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Graphics\Mesh.cpp">
+      <Filter>Framework\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneObjects\Camera.cpp">
+      <Filter>SceneObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneObjects\Billboard.cpp">
+      <Filter>SceneObjects</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Framework\Utils\Timer.h">
+      <Filter>Framework\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\RenderDX11.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuGalaxy.h" />
+    <ClInclude Include="Framework\Core\Application.h">
+      <Filter>Framework\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ParallelCompute\ParallelCompute.h">
+      <Filter>ParallelCompute</Filter>
+    </ClInclude>
+    <ClInclude Include="ParallelCompute\DirectCompute11.h">
+      <Filter>ParallelCompute</Filter>
+    </ClInclude>
+    <ClInclude Include="ParallelCompute\OpenCLCompute.h">
+      <Filter>ParallelCompute</Filter>
+    </ClInclude>
+    <ClInclude Include="ParallelCompute\CudaCompute.h">
+      <Filter>ParallelCompute</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Utils\Utils.h">
+      <Filter>Framework\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\Texture.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\TextureDX11.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Utils\StringAccumulator.h">
+      <Filter>Framework\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\Render.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Core\Input.h">
+      <Filter>Framework\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\Font.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\FontDX11.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Defines.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\MiscDX11.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\ShaderProgram.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\ShaderProgramDX11.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\Vertex.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\Buffers.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\BuffersDX11.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\FileDDS.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\FileTGA.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Gui.h">
+      <Filter>Framework\Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Widget.h">
+      <Filter>Framework\Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Utils\PointRect.h">
+      <Filter>Framework\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Panel.h">
+      <Filter>Framework\Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\Button.h">
+      <Filter>Framework\Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\ButtonBox.h">
+      <Filter>Framework\Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Utils\Delegate.h">
+      <Filter>Framework\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="SceneObjects\BaseObject.h">
+      <Filter>SceneObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Vec2.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Vec3.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Vec4.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Gui\TextLabel.h">
+      <Filter>Framework\Gui</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneObjects\ParticleEmitter.h">
+      <Filter>SceneObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Graphics\Mesh.h">
+      <Filter>Framework\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Matrix4x4.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneObjects\Camera.h">
+      <Filter>SceneObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneObjects\Billboard.h">
+      <Filter>SceneObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Matrix4x3T.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Maths.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\Math\Color.h">
+      <Filter>Framework\Math</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
