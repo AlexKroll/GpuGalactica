@@ -27,6 +27,7 @@
 *.lib
 *.db
 *.opendb
+*.suo
 
 # Executables
 *.exe
