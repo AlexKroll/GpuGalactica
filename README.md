@@ -24,7 +24,13 @@ Tested:
 You need: Windows 7 or later, VisualStudio 2017 C++, Windows SDK 10.0.15063.
 
 
-![Image of Yaktocat](Galaxy.jpg)
+![Image1](Galaxy.jpg)
+
+
+
+Brief explanation how it works:
+![Image2](Particles.gif)
+We store the indices of died particles in special array.
 
 
 
