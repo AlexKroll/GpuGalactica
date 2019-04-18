@@ -1,0 +1,9 @@
+
+
+inline float GetFloat01FromInt(ushort ivalue)
+{
+	float fvalue = (float)ivalue * 0.000015259f; // divide by 65535
+	return fvalue;
+}
+
+

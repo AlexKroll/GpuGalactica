@@ -97,8 +97,8 @@ void Camera::buildPerspectiveMatrix(float fov, float aspect, float _near, float 
 
 void Camera::process(float time, Scene* pScene)
 {
-	Gui* pGui = pScene->getGui();
-	if (nullptr == pGui->getFocusWidget())
+	Gui pGui = pScene->getGui();
+	if (pGui && nullptr == pGui->getFocusWidget())
 	{
 		Input* pInput = pScene->getInput();
 		if (pInput)
@@ -154,9 +154,10 @@ void Camera::process(float time, Scene* pScene)
 			if (zoom != 0)
 			{
 				float zoom_dir = (zoom > 0) ? 1.0f : -1.0f;
-				float speed = zoomSpeed_ * zoom_dir * time;
+				float speed = zoomSpeed_ * zoom_dir;// * time;
 
 				dir_ = target_ - pos_;
+				dir_.normalize();
 
 				pos_ += dir_ * speed;
 

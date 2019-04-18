@@ -19,6 +19,7 @@ IRender* IRender::getRender(DeviceType type)
 
 		case DX11:
 			pRender = new RenderDX11;
+			pRender->deviceType_ = type;
 			break;
 
 		case GLES20:
@@ -39,7 +40,7 @@ void IRender::commonInit()
 	pDefaultFont_ = loadFont("Fonts/Arial9.dds");
 
 	if (bDrawStatistics_)
-		pStatisticTexture_ = createTexture(128, 64, ITexture::ColorRGBA8, ITexture::RenderTarget);
+		pStatisticTexture_ = createTexture(128, 64, ITexture::ColorRGBA8, ITexture::RenderTarget, 0);
 }
 
 

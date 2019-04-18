@@ -1,14 +1,14 @@
 #include "Gui.h"
 
 
-void Button::nativeMouseDown(Gui* pGui, byte mouseButtonType)
+void Button::nativeMouseDown(WidgGui* pGui, byte mouseButtonType)
 {
 	if (pGui->getFocusWidget() == this && Input::mouseButtonLeft == mouseButtonType)
 		shift_ = 1;
 }
 
 
-void Button::draw(Render pRender, Gui* pGui)
+void Button::draw(Render pRender, WidgGui* pGui)
 {
 	pos_ += Point(shift_, shift_);
 

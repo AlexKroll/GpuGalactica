@@ -15,25 +15,37 @@ public:
 
 	//virtual Render getRender() override { return nullptr; }
 
-	virtual UABuffer createUABuffer(int, int, bool) override { return nullptr; }
+	virtual ComputeBuffer createBuffer(int, int, uint32_t) override { return nullptr; }
 
-	virtual Shader createComputeProgram(cstring, CShaderMacroStrings) override { return nullptr; }
+	virtual int debugDumpBuffer(void*, ComputeBuffer) override { return 0; }
 
-	virtual void setComputeProgram(Shader) override { }
+	virtual Texture createImage(UINT, UINT, ITexture::PixelFormat, ITexture::Type, uint32_t, BYTE*) override { return nullptr; }
 
-	virtual void writeConstantBuffer(ConstantBuffer, const void*, size_t) override {}
+	virtual int createImageIntoTexture(Texture, uint32_t) override { return 0; }
 
-	virtual void setConstantBuffer(ConstantBuffer, uint32_t) override { }
+	virtual void releaseImage(Texture&) {}
 
-	virtual void setComputeBuffer(UABuffer, uint32_t) override { }
+	virtual ComputeTask createComputeTask(cstring, CShaderMacroStrings) override { return nullptr; }
 
-	virtual void bindUABufferToTextureVS(UABuffer, UINT) override { }
+	virtual void setComputeTask(ComputeTask) override { }
 
-	virtual void setTexture(Texture, uint32_t) override { }
+	virtual ComputeBuffer createConstantBuffer(size_t) override { return nullptr; }
+
+	virtual void writeBuffer(ComputeBuffer, const void*, size_t) override {}
+
+	virtual void setConstantBuffer(ComputeBuffer, uint32_t) override { }
+
+	virtual void setComputeBuffer(ComputeBuffer, uint32_t) override { }
+
+	//virtual void bindBufferToTextureVS(ComputeBuffer, UINT) override { }
+
+	virtual void setImage(Texture, uint32_t) override { }
 
 	virtual void setSampler(uint32_t, uint32_t) override { }
 
-	virtual void compute(UINT, UINT, UINT) override { }
+	virtual void compute(uint32_t, uint32_t, uint32_t) override { }
+
+	virtual int finish() override { return 0; }
 
 	friend struct IParallelCompute;
 

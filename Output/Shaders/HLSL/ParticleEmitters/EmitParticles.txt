@@ -1,18 +1,18 @@
 
-#include "csParticle.txt"
-#include "csEmitProperties.txt"
+#include "Particle.txt"
+#include "Emitter.txt"
 
 
 RWStructuredBuffer<Particle> particles : register(u0);
 
 ConsumeStructuredBuffer<int> FreeIndices : register(u1);
 
-Texture1D RandomTex: register(t0);
-sampler Samp: register(s0);
+Texture2D RandomTex: register(t2);
+sampler Samp: register(s2);
 
 static uint ind;
 
-#include "csMath.txt"
+#include "Randoms.txt"
 
 
 
@@ -69,7 +69,10 @@ void Main( uint3 threadId : SV_GroupThreadID )
 
 #ifdef PARTICLE_RANDOM_TFRAME
 	int frame = RandomI(NumTexFrames);
-	particles[ind].uv_add_x = (float)frame * UvMulX;
+	float texu = (float)frame * UvMulX * 65535.0f;
+	int itexu = ((int)texu) << 16;
+	particles[ind].rand_texu_add &= 0x0000FFFF;
+	particles[ind].rand_texu_add |= itexu;
 #endif
 
 
@@ -88,6 +91,7 @@ void Main( uint3 threadId : SV_GroupThreadID )
 
 	float3 pos = RandomSphere(Radius1, Radius2);
 
+// Special processing for spiral dust.
 #ifdef PARTICLE_SPIRAL_CN
 	pos *= pow(1-F, 0.4);
 	particles[ind].pos.w *= pow(1-F, 0.4f) + 1.0f;

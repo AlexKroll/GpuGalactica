@@ -6,9 +6,9 @@
 class TextLabel : public Widget
 {
 protected:
-	virtual void draw(Render pRender, Gui* pGui) override;
+	virtual void draw(Render pRender, WidgGui* pGui) override;
 
 private:
 
-friend class Gui;
+friend class WidgGui;
 };

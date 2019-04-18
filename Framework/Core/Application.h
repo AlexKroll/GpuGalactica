@@ -6,6 +6,7 @@
 #include "../Utils/Timer.h"
 #include "../Graphics/Render.h"
 #include "../Gui/Gui.h"
+#include "../Gui/Widget.h"
 
 
 
@@ -51,11 +52,14 @@ protected:
 
 	float elapsedTime_ = 0.0f;
 
+	//const float kMouseWheelPeriod_ = 0.1f;
+	//float mouseWheelTime_ = kMouseWheelPeriod_;
+
 	std::shared_ptr<Input> pInput_ = nullptr;
 
-	std::shared_ptr<IRender> pRender_ = nullptr;
+	Render pRender_ = nullptr;
 
-	std::shared_ptr<Gui> pGui_ = nullptr;
+	Gui pGui_ = nullptr;
 };
 
 

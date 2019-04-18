@@ -26,24 +26,28 @@ public:
 
 	FileAutoClose(FILE* hf)
 	{
-		mFile = hf;
+		pFile_ = hf;
 	}
 
 	~FileAutoClose()
 	{
-		if (mFile)
-			fclose(mFile);
+		if (pFile_)
+			fclose(pFile_);
 	}
 
 	operator FILE* ()
 	{
-		return mFile;
+		return pFile_;
 	}
 
 	FILE** getAddrOf()
 	{
-		return &mFile;
+		return &pFile_;
 	}
 
-	FILE* mFile = nullptr;
+	FILE* pFile_ = nullptr;
 };
+
+
+
+__int64 MyGetFileSize(PCCHAR filename);

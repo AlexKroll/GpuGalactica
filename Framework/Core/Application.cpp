@@ -68,7 +68,7 @@ int Application::init(HINSTANCE hInstance)
 	if (res != S_OK)
 		return res;
 
-	pGui_ = std::shared_ptr<Gui>(Gui::getInstance(pRender_));
+	pGui_ = std::shared_ptr<WidgGui>(WidgGui::getInstance(pRender_));
 	if (nullptr == pGui_)
 		return E_FAIL;
 
@@ -96,7 +96,8 @@ void Application::run()
 			if (bActive_)
 			{
 				// Process the application.
-				elapsedTime_ = pTimer_->getMeasuredTime();
+				double dbl_time = pTimer_->getMeasuredTime();
+				elapsedTime_ = static_cast<float>(dbl_time);
 				pTimer_->startMeasure();
 
 				if (pInput_)
@@ -106,6 +107,18 @@ void Application::run()
 					pGui_->process(pInput_, elapsedTime_);
 
 				processScene(elapsedTime_);
+
+/*static double t = 0;
+static int fps = 0;
+t += dbl_time;
+if( t > 1.0 )
+{	fps++;
+	if( t > 5.0 )
+	{	fps = fps/4;
+		fps = 0;
+		t = 0.0;
+	}
+}*/
 
 				if (pRender_)
 					pRender_->prepareDrawing();
@@ -154,7 +167,14 @@ LRESULT Application::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 
 		case WM_MOUSEWHEEL:
 			if (pInput_)
-				pInput_->setMouseMediumWheelScrolling(static_cast<signed short>(HIWORD(wParam)));
+			{	//mouseWheelTime_ += pTimer_->getMeasuredTime();
+				//if (mouseWheelTime_ >= kMouseWheelPeriod_)
+				{
+					//mouseWheelTime_ -= kMouseWheelPeriod_;
+
+					pInput_->setMouseMediumWheelScrolling(static_cast<signed short>(HIWORD(wParam)));
+				}
+			}
 		break;
 	}
 

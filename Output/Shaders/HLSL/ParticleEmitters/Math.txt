@@ -1,0 +1,17 @@
+
+
+inline float GetFloat01FromLowHalf(int ivalue)
+{
+	int i = ivalue & 0x0000FFFF;
+	float fvalue = (float)i * 0.000015259f; // divide by 65535
+	return fvalue;
+}
+
+
+inline float GetFloat01FromHighHalf(int ivalue)
+{
+	int i = (ivalue & 0xFFFF0000) >> 16;
+	float fvalue = (float)i * 0.000015259f; // divide by 65535
+	return fvalue;
+}
+

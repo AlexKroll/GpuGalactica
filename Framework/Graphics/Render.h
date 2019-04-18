@@ -6,13 +6,14 @@
 #include <memory>
 
 #include "../Math/Color.h"
-
 #include "../Utils/PointRect.h"
+#include "../ComputeBuffer.h"
 
 #include "Vertex.h"
 #include "Font.h"
 #include "ShaderProgram.h"
 #include "Mesh.h"
+
 
 
 
@@ -23,8 +24,10 @@ class IRender abstract
 public:
 	enum DeviceType
 	{
+		DEV_NULL,
 		DX9,
 		DX11,
+		GL,
 		GLES20,
 		GLES30,
 		VULKAN
@@ -43,6 +46,8 @@ public:
 
 	static IRender* getRender(DeviceType type);
 
+	DeviceType getDeviceType()  {  return deviceType_;  }
+
 	virtual int init(HWND hWnd, bool bWindowed) = 0;
 
 	virtual void release() = 0;
@@ -51,11 +56,13 @@ public:
 	//  Vertex meshes..
 	virtual Mesh createMesh(uint32_t sizeBytes, void* pVertices, byte vertexSize, void* pIndices, int numPrimitives, IMesh::MeshUsage* pUsage) = 0;
 
+	virtual void releaseMesh(Mesh& pMesh) = 0;
+
 
 	//  Textures..
-	virtual Texture createTexture(UINT width, UINT height, ITexture::PixelFormat format, ITexture::Type type, BYTE* pPixels = nullptr) = 0;
+	virtual Texture createTexture(UINT width, UINT height, ITexture::PixelFormat format, ITexture::Type type, uint32_t flags, BYTE* pPixels = nullptr) = 0;
 
-	virtual Texture createTexture1D(UINT width, ITexture::PixelFormat format, ITexture::Type type, BYTE* pPixels = nullptr) = 0;
+	virtual Texture createTexture1D(UINT width, ITexture::PixelFormat format, ITexture::Type type, uint32_t flags, BYTE* pPixels = nullptr) = 0;
 
 	virtual Texture createDepthBuffer(UINT width, UINT height, ITexture::PixelFormat format, UINT multisamples = 0) = 0;
 
@@ -115,9 +122,11 @@ public:
 
 	virtual void setVertexInput(VertexInput pVertexInput) = 0;
 
+	virtual void releaseVertexInput(VertexInput& pVertexInput) = 0;
+
 
 	//  Constant buffer..
-	virtual ConstantBuffer createConstantBuffer(uint32_t sizeBytes) = 0;
+	virtual ConstantBuffer createConstantBuffer(size_t sizeBytes) = 0;
 
 	virtual void* openConstantBuffer(ConstantBuffer pBuffer) = 0;
 
@@ -151,12 +160,18 @@ public:
 	virtual void setIndexBuffer(IndexBuffer pIndexBuffer) = 0;
 
 
-	//  Unordered access buffer..
-	virtual UABuffer createUABuffer(int amountOfElems, int elemSize, bool bGPUlength) = 0;
-	// These buffers are used by GPU computing.
-	// They have arbitrary access for general calculations.
-	// bGPUlength - GPU can increase/decrease the length of the buffer (push/pop). (see particle emitters shaders).
-									
+	//  Compute buffer (if supports by graphics API)..
+	virtual ComputeBuffer createComputeBuffer(int amountOfElems, int elemSize, uint32_t flags) = 0;
+		// The buffer is treated as an array of elements.
+		// amountOfElems, elemSize - number of elements and size of one element.
+		// flags:
+		//		IParallelCompute::kBufferReadWrite.. read/write access.
+		//		IParallelCompute::kShared - buffer is shared with graphics API (for example OpenCL/DX).
+		//		IParallelCompute::kAutoLength - compute buffer has auto counter of elements.
+
+	virtual void bindComputeBufferToTextureVS(ComputeBuffer buffer, UINT slot) = 0;
+		// Represents a compute buffer as a data from texture slot (See DirectX StructuredBuffer).
+
 
 	//  2D drawing..
 	virtual void drawSprite(CPoint pos, Texture pTexture, CRect rect, uint32_t flags) = 0;
@@ -195,6 +210,8 @@ public:
 	virtual ~IRender() {}
 
 protected:
+	DeviceType deviceType_ = DEV_NULL;
+
 	HWND hWindow_ = nullptr;
 
 	int screenW_ = 0;	//  The size of the
@@ -215,7 +232,7 @@ protected:
 
 	void commonRelease();
 
-	friend std::shared_ptr<IRender>;
+	//friend std::shared_ptr<IRender>;
 };
 
 typedef std::shared_ptr<IRender> Render;

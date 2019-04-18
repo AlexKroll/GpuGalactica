@@ -3,7 +3,7 @@
 
 
 
-void Panel::draw(Render pRender, Gui* pGui)
+void Panel::draw(Render pRender, WidgGui* pGui)
 {
 	if (nullptr == pRender)
 		return;

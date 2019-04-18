@@ -1,0 +1,51 @@
+
+// It should correspond to struct EmitProps in file ParticleEmitter.h
+
+struct CEmitter
+{
+	float4 Pos;
+	float4 Size;
+
+	float pack1x;
+	float Time;
+	float UvMulX;
+	int   NumTexFrames;
+
+	float Life1;
+	float Life2;
+	float Radius1;
+	float Radius2;
+
+	float Size1;
+	float Size2;
+	float pack4z;
+	float pack4w;
+
+	float4 Randoms;
+
+	float Velocity1;
+	float Velocity2;
+	float pack6z;
+	float pack6w;
+
+	float AFadeInOut;		// 1-alpha_fade in/out
+	float AFadeIn;			// alpha_in
+	float AFadeOut;			// alpha_out
+	float AFadeOutMax;		//
+
+	float4 Color;
+
+	float4 VelocityDir_FactorPow;  // xyz - velocity direction,  w - FactorPow
+		//float3 VelocityDir;  // We can`t separate vec3 and float in OpenCL.
+		//float FactorPow;
+
+	float4 Color1;
+	float4 Color2;
+
+	float4 mWorld[3];
+	float4 packm1;
+};
+
+
+
+

@@ -1,18 +1,47 @@
+#include "Math.txt"
+
+
+
+inline float SetParticleRandom(float frand)
+{
+	if (frand > 1.0f)
+		frand -= 1.0f;
+
+	float fout = frand;
+
+	frand *= 65535.0f;
+
+	int irand = (int)frand;
+
+	particles[ind].rand_texu_add &= 0xFFFF0000;
+	particles[ind].rand_texu_add |= irand;
+
+	return fout;
+}
 
 
 inline float PartRandom()
 {
-	float random = RandomTex.SampleLevel(Samp, particles[ind].random, 0).x;
-	particles[ind].random = random + Randoms.x;
-	return random;
+	float frand = GetFloat01FromLowHalf(particles[ind].rand_texu_add);
+
+	frand = RandomTex.SampleLevel(Samp, frand, 0).x + Randoms.x;
+
+	frand = SetParticleRandom(frand);
+	return frand;
 }
 
 
 inline float3 PartRandom3()
 {
-	float4 random = RandomTex.SampleLevel(Samp, particles[ind].random, 0);
-	particles[ind].random = random.w + Randoms.y;
-	return random.xyz;
+	float frand = GetFloat01FromLowHalf(particles[ind].rand_texu_add);
+
+	float4 frand4 = RandomTex.SampleLevel(Samp, frand, 0);
+
+	frand = frand4.w + Randoms.y;
+
+	frand = SetParticleRandom(frand);
+
+	return frand4.xyz;
 }
 
 

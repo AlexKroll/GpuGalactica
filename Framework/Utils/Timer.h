@@ -10,7 +10,7 @@ public:
 
 	void startMeasure();
 
-	float getMeasuredTime();
+	double getMeasuredTime();
 
 private:
 	Timer();

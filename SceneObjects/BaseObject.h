@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <wrl/client.h>
-using Microsoft::WRL::ComPtr;
+//using Microsoft::WRL::ComPtr;
 	
 #include "../Framework/Math/Maths.h"
 

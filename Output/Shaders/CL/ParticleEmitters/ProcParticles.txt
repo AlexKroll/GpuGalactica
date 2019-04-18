@@ -1,0 +1,52 @@
+
+#include "Particle.txt"
+#include "Emitter.txt"
+
+
+
+__kernel  __attribute__((vec_type_hint(float4)))
+		  __attribute__((work_group_size_hint(MAX_PARTICLES / NUM_GROUPS, 1, 1)))
+void Main(__global Particle* parts, __global int* FreeIndices, __constant struct CEmitter* Emitter)
+{
+	//int gind = get_global_id(0);
+	int ind = get_local_id(0);
+
+	int gr = get_group_id(0);
+
+	__local Particle particles[MAX_PARTICLES / NUM_GROUPS];
+
+	//particles[ind] = parts[gind];
+	event_t cpy_event = 0;
+	int vecs4 = get_local_size(0) * sizeof(Particle)/16;
+	cpy_event = async_work_group_copy(&particles[0].pos, &parts->pos + gr*vecs4, vecs4, 0);
+	wait_group_events(1, &cpy_event);
+	
+
+	if( particles[ind].time > 0.0f )
+	{
+		particles[ind].time -= Emitter->Time;
+
+#ifndef PARTICLE_DONT_FACTOR
+		particles[ind].factor01 = 1.0f - particles[ind].time * particles[ind].life;
+#endif
+
+		particles[ind].pos += particles[ind].vel * Emitter->Time;
+
+		particles[ind].vel += particles[ind].accel * Emitter->Time;
+
+		if( particles[ind].time < 0.0f )
+		{	particles[ind].pos.xyz = -9999999.0f;		//  move the particle outside of the view space
+			particles[ind].pos.w = 0.0f;
+
+			int nums = atomic_inc(&FreeIndices[0]);
+			if( nums < MAX_PARTICLES )
+				FreeIndices[nums+1] = get_global_id(0);
+		}
+	}
+
+	//parts[gind] = particles[ind];
+	cpy_event = async_work_group_copy(&parts->pos + gr*vecs4, &particles[0].pos, vecs4, 0);
+	wait_group_events(1, &cpy_event);
+}
+
+

@@ -2,13 +2,14 @@
 
 #include <cassert>
 #include <wrl/client.h>
-using Microsoft::WRL::ComPtr;
+//using Microsoft::WRL::ComPtr;
 
 #include "../Defines.h"
 
 
 
-interface IConstantBuffer				// Buffer for storing the constant data (constants/uniforms) for the shaders.
+// Buffer for storing the constant data (constants/uniforms) for the shaders.
+interface IConstantBuffer
 {
 	virtual void* getNativeBuffer() = 0;
 
@@ -19,8 +20,8 @@ typedef std::shared_ptr<IConstantBuffer> ConstantBuffer;
 
 
 
-
-interface IVertexBuffer					// Buffer for storing the vertex data for transforming in the vertex shaders.
+// Buffer for storing the vertex data for transforming in the vertex shaders.
+interface IVertexBuffer
 {
 	virtual void* getNativeBuffer() = 0;
 
@@ -29,13 +30,12 @@ interface IVertexBuffer					// Buffer for storing the vertex data for transformi
 	virtual ~IVertexBuffer() = default;
 };
 
-//typedef IVertexBuffer* VertexBuffer;
 typedef std::shared_ptr<IVertexBuffer> VertexBuffer;
 
 
 
-
-interface IIndexBuffer					// Buffer for storing the indices of the vertices in geometry.
+// Buffer for storing the indices of the vertices in geometry.
+interface IIndexBuffer
 {
 	virtual void* getNativeBuffer() = 0;
 
@@ -44,16 +44,7 @@ interface IIndexBuffer					// Buffer for storing the indices of the vertices in 
 	virtual ~IIndexBuffer() = default;
 };
 
-//typedef IIndexBuffer* IndexBuffer;
 typedef std::shared_ptr<IIndexBuffer> IndexBuffer;
 
 
 
-interface IUABuffer						// Unordered access buffer for arbitrary reading/writing the data by the shaders.
-{
-	virtual void* getNativeBuffer() = 0;
-
-	virtual ~IUABuffer() = default;
-};
-
-typedef std::shared_ptr<IUABuffer> UABuffer;

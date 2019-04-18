@@ -6,7 +6,7 @@
 
 
 
-
+// Buffer for storing the constant data (constants/uniforms) for the shaders.
 class ConstantBufferDX11 : public IConstantBuffer
 {
 public:
@@ -28,6 +28,7 @@ private:
 
 
 
+// Buffer for storing the vertex data for transforming in the vertex shaders.
 class VertexBufferDX11 : public IVertexBuffer
 {
 public:
@@ -56,6 +57,7 @@ private:
 
 
 
+// Buffer for storing the indices of the vertices in geometry.
 class IndexBufferDX11 : public IIndexBuffer
 {
 public:
@@ -84,15 +86,22 @@ private:
 
 
 
-class UABufferDX11 : public IUABuffer
+
+// UA - Unordered Access buffer for DirectX compute interface.
+class UABufferDX11
 {
 public:
-	virtual void* getNativeBuffer() override final
+	ID3D11Buffer* getDxBuffer()
 	{
 		return pDxBuffer_;
 	}
 
 	virtual ~UABufferDX11()
+	{
+		release();
+	}
+
+	void release()
 	{
 		SAFE_RELEASE_DX(pDxBuffer_);
 		SAFE_RELEASE_DX(pDxUAView_);
@@ -106,3 +115,5 @@ private:
 
 	friend class RenderDX11;
 };
+
+//typedef std::shared_ptr<UABufferDX11impl> UABufferDX11;

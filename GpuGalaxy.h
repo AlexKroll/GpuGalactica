@@ -21,7 +21,7 @@ public:
 
 	virtual void renderScene(float elapsedTime) final;
 
-	IParallelCompute::Type computeType_ = IParallelCompute::DX11;
+	IParallelCompute::Type computeType_ = IParallelCompute::DX11; //DX11 OPENCL
 
 	void createSettingsPanel();
 
@@ -50,6 +50,8 @@ private:
 
 	Texture pGuiTexture_ = nullptr;
 	Panel* pSetsPanel_ = nullptr;
+
+	uint32_t whatObjectsToDraw_ = 0xFFFFFFFF;
 
 	int Fps_ = 0;
 	float timeFPS_ = 1.0f;

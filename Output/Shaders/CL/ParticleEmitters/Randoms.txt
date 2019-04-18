@@ -1,0 +1,78 @@
+#include "Math.txt"
+
+
+
+inline float SetParticleRandom(__local Particle* particle, float frand)
+{
+	if (frand > 1.0f)
+		frand = frand - 1.0f;
+
+	float fout = frand;
+
+	frand = frand * 65535.0f;
+
+	int irand = (int)frand;
+
+	particle->random = (ushort)irand;
+
+	return fout;
+}
+
+
+inline float PartRandom(__local Particle* particle, __read_only image2d_t RandomTex, float rand_shift)
+{
+	float frand = GetFloat01FromInt(particle->random);
+
+	frand = read_imagef(RandomTex, Samp, (float2)(frand,0.0f)).x + rand_shift;
+
+	frand = SetParticleRandom(particle, frand);
+	return frand;
+}
+
+
+inline float3 PartRandom3(__local Particle* particle, __read_only image2d_t RandomTex, float rand_shift)
+{
+	float frand = GetFloat01FromInt(particle->random);
+
+	float4 frand4 = read_imagef(RandomTex, Samp, (float2)(frand,0.0f));
+
+	frand = frand4.w + rand_shift;
+
+	frand = SetParticleRandom(particle, frand);
+
+	return frand4.xyz;
+}
+
+
+inline float RandomF(__local Particle* particle, __read_only image2d_t RandomTex, float fmin, float fmax, float rand_shift)
+{
+	float frand = PartRandom(particle, RandomTex, rand_shift);
+	return mix(fmin, fmax, frand);
+}
+
+
+inline float RandomF01(__local Particle* particle, __read_only image2d_t RandomTex, float rand_shift)
+{
+	float random = PartRandom(particle, RandomTex, rand_shift);
+	return random;
+}
+
+
+inline int RandomI(__local Particle* particle, __read_only image2d_t RandomTex, int imax, float rand_shift)
+{
+	float F = RandomF01(particle, RandomTex, rand_shift) * (float)imax;
+	int I = (int)F;
+	return I;
+}
+
+
+
+inline float3 RandomSphere(__local Particle* particle, __read_only image2d_t RandomTex, __constant struct CEmitter* Emitter)
+{
+	float radius = RandomF(particle, RandomTex, Emitter->Radius1, Emitter->Radius2, Emitter->Randoms.x);
+
+	float3 pos = PartRandom3(particle, RandomTex, Emitter->Randoms.y);
+	pos = normalize(pos * 2.0f - 1.0f) * radius;
+	return pos;
+}
+

@@ -1,9 +1,12 @@
 
 #include "vsCamera.txt"
-#include "ParticleEmitters/csParticle.txt"
-#include "ParticleEmitters/csEmitProperties.txt"
+#include "ParticleEmitters/Math.txt"
+#include "ParticleEmitters/Particle.txt"
+#include "ParticleEmitters/Emitter.txt"
 
 StructuredBuffer<Particle> particles : register(t0);
+
+
 
 
 
@@ -13,7 +16,7 @@ void Main(in float4 VertexPos: POSITION, in float2 VertexTexCrd: TEXCOORD0, in u
 #ifdef PARTICLE_MWORLD
 	float3 Pos = mul( float4(particles[ind].pos.xyz, 1), mWorld );
 #else
-	float3 Pos = particles[ind].pos;
+	float3 Pos = particles[ind].pos.xyz;
 #endif
 
 	Pos = mul( float4(Pos, 1), mView );
@@ -23,7 +26,9 @@ void Main(in float4 VertexPos: POSITION, in float2 VertexTexCrd: TEXCOORD0, in u
 	OutPos = mul( float4(Pos,1), mProj );
 
 	TexCoord.y = VertexTexCrd.y;
-	TexCoord.x = VertexTexCrd.x * UvMulX + particles[ind].uv_add_x;
+
+	float tex_add_u = GetFloat01FromHighHalf(particles[ind].rand_texu_add);
+	TexCoord.x = VertexTexCrd.x * UvMulX + tex_add_u;
 
 	float fact = particles[ind].factor01;
 

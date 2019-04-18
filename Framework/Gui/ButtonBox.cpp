@@ -8,6 +8,8 @@ void ButtonBox::initBox(Widget::Type type, uint32_t checks, CFont pFont, const s
 
 	checks_ = checks;
 
+	enables_ = 0xFFFFFFFF;
+
 	itemsTexts_ = itemsText;
 
 	// Calculate the size of the box.
@@ -41,15 +43,25 @@ void ButtonBox::initBox(Widget::Type type, uint32_t checks, CFont pFont, const s
 }
 
 
+void ButtonBox::disableItem(uint32_t check)
+{
+	enables_ &= ~check;
+}
+
+
 void ButtonBox::nativeMouseClick(byte mouseButtonType)
 {
+	uint32_t flag = 1 << focusItem_;
+
+	if ((enables_ & flag) == 0)
+		return;
+
 	if (RadioButtons == type_)
 	{	if (focusItem_ >= 0 && Input::mouseButtonLeft == mouseButtonType)
-			checks_ = 1 << focusItem_;
+			checks_ = flag;
 	}
 	else
-	{	uint32_t flag = 1 << focusItem_;
-		if (checks_ & flag)
+	{	if (checks_ & flag)
 			checks_ &= ~flag;
 		else
 			checks_ |= flag;
@@ -57,7 +69,7 @@ void ButtonBox::nativeMouseClick(byte mouseButtonType)
 }
 
 
-void ButtonBox::process(Gui* pGui, float elapsedTime)
+void ButtonBox::process(WidgGui* pGui, float elapsedTime)
 {
 	Widget::process(pGui, elapsedTime);
 
@@ -77,7 +89,7 @@ void ButtonBox::process(Gui* pGui, float elapsedTime)
 }
 
 
-void ButtonBox::draw(Render pRender, Gui* pGui)
+void ButtonBox::draw(Render pRender, WidgGui* pGui)
 {
 	if (nullptr == pRender || nullptr == pFont_)
 		return;
@@ -102,6 +114,8 @@ void ButtonBox::draw(Render pRender, Gui* pGui)
 			pRect = (check & checks_) ? &pGui->checkedCheckRect_ : &pGui->uncheckedCheckRect_;
 
 		uint32_t color = (i == focusItem_) ? pGui->highColor_ : pGui->fadeColor_;
+		if ((enables_ & check) == 0)
+			color = (pGui->fadeColor_ & 0x00FFFFFF) | 0x77000000;
 
 		pRender->drawSprite(pos_+ Point(0,y), pGui->buttonBoxTexture_, *pRect, color, IRender::kAlphaBlendNormal);
 			

@@ -2,7 +2,7 @@
 
 
 
-void TextLabel::draw(Render pRender, Gui*)
+void TextLabel::draw(Render pRender, WidgGui*)
 {
 	if (nullptr == pRender || nullptr == pFont_)
 		return;

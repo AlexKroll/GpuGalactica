@@ -1,0 +1,17 @@
+
+// It should correspond to struct Particle in file ParticleEmitter.h
+
+
+typedef struct Particle
+{
+	float4 pos;		// xyz - position, w - size
+	float4 vel;		// xyz - velocity, w - speed of size
+	float4 accel;	// xyz - accelerate, w - accelerate of size
+
+	float time;
+	float life;
+	float factor01;
+
+	ushort random;		// random value 0..1
+	ushort uv_add_x;	// Shift of the TexCoord.x
+} Particle;

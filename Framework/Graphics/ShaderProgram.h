@@ -11,7 +11,6 @@ public:
 	virtual void release() = 0;
 };
 
-//typedef IShader* Shader;
 typedef std::shared_ptr<IShader> Shader;
 
 
@@ -24,9 +23,12 @@ public:
 	virtual Shader getVertexShader() = 0;
 
 	virtual Shader getPixelShader() = 0;
+
+	virtual ~IShaderProgram() {}
 };
 
-typedef IShaderProgram* ShaderProgram;
+typedef std::shared_ptr<IShaderProgram> ShaderProgram;
+//typedef IShaderProgram* ShaderProgram;
 
 
 

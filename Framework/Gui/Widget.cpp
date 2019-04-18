@@ -51,7 +51,7 @@ void Widget::initHighlighting(uint32_t highColor, float highTime, uint32_t fadeC
 }
 
 
-void Widget::processHighlighting(Gui* pGui, float elapsedTime)
+void Widget::processHighlighting(WidgGui* pGui, float elapsedTime)
 {
 	Color Color1, Color2;
 	float time;
@@ -87,12 +87,12 @@ void Widget::processHighlighting(Gui* pGui, float elapsedTime)
 }
 
 
-void Widget::process(Gui*, float)
+void Widget::process(WidgGui*, float)
 {
 }
 
 
-void Widget::draw(Render pRender, Gui*)
+void Widget::draw(Render pRender, WidgGui*)
 {
 	if (nullptr == pRender)
 		return;

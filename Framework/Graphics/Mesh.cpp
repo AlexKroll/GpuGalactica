@@ -3,6 +3,7 @@
 
 void IMesh::release()
 {
+	// buffers are shared ptr.
 	//pVertBuffer->release();
 	//pIndBuffer->release();
 }

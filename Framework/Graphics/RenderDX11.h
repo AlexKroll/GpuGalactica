@@ -11,6 +11,7 @@
 #include "MiscDX11.h"
 #include "ShaderProgramDX11.h"
 #include "BuffersDX11.h"
+#include "../ComputeBuffer.h"
 
 
 
@@ -26,11 +27,13 @@ public:
 	//  Vertex meshes..
 	virtual Mesh createMesh(uint32_t sizeBytes, void* pVertices, byte vertexSize, void* pIndices, int numPrimitives, IMesh::MeshUsage* pUsage) override final;
 
+	void releaseMesh(Mesh& pMesh) override;
+
 
 	//  Textures..
-	virtual Texture createTexture(UINT width, UINT height, ITexture::PixelFormat format, ITexture::Type type, BYTE* pPixels = nullptr) override final;
+	virtual Texture createTexture(UINT width, UINT height, ITexture::PixelFormat format, ITexture::Type type, uint32_t flags, BYTE* pPixels = nullptr) override final;
 
-	virtual Texture createTexture1D(UINT width, ITexture::PixelFormat format, ITexture::Type type, BYTE* pPixels = nullptr) override final;
+	virtual Texture createTexture1D(UINT width, ITexture::PixelFormat format, ITexture::Type type, uint32_t flags, BYTE* pPixels = nullptr) override final;
 
 	virtual Texture createDepthBuffer(UINT width, UINT height, ITexture::PixelFormat format, UINT multisamples = 0) override final;
 
@@ -106,13 +109,15 @@ public:
 
 
 	//  Vertex data..
-	virtual VertexInput createVertexInput(uint32_t vertexFlags, uint32_t instanceFlags) override final;
+	virtual VertexInput createVertexInput(uint32_t vertexFlags, uint32_t instanceFlags) override;
 
-	virtual void setVertexInput(VertexInput pVertexInput) override final;
+	virtual void setVertexInput(VertexInput pVertexInput) override;
+
+	virtual void releaseVertexInput(VertexInput& pVertexInput) override;
 
 
 	//  Constant buffer..
-	virtual ConstantBuffer createConstantBuffer(uint32_t sizeBytes) override final;
+	virtual ConstantBuffer createConstantBuffer(size_t sizeBytes) override final;
 
 	virtual void* openConstantBuffer(ConstantBuffer pBuffer) override final;
 
@@ -146,14 +151,30 @@ public:
 	virtual void setIndexBuffer(IndexBuffer pIndexBuffer) override final;
 
 
-	//  Unordered access buffer..
-	virtual UABuffer createUABuffer(int amountOfElems, int elemSize, bool bGPUlength) override final;
-	// These buffers are used by GPU computing.
-	// They have arbitrary access for general calculations.
-	// bGPUlength - GPU can increase/decrease the length of the buffer (see particle emitters shaders).
+	//  Compute buffer..
+	virtual ComputeBuffer createComputeBuffer(int amountOfElems, int elemSize, uint32_t flags) override;
+		// The buffer is treated as an array of elements.
+		// amountOfElems, elemSize - number of elements and size of one element.
+		// flags:
+		//		IParallelCompute::kBufferReadWrite.. read/write access.
+		//		IParallelCompute::kShared - buffer is shared with graphics API (for example OpenCL/DX).
+		//		IParallelCompute::kAutoLength - compute buffer has auto counter of elements.
+
+	virtual void bindComputeBufferToTextureVS(ComputeBuffer buffer, UINT slot) override;
+		// Represents a compute buffer as a data from texture slot (See DirectX StructuredBuffer).
+
+	ComputeBuffer createConstantComputeBuffer(size_t sizeBytes);
+
+	//  Unordered access compute buffer..
+	UABufferDX11* createUABuffer(int amountOfElems, int elemSize, uint32_t flags);
+		// These buffers are used by DX GPU computing.
+		// They have arbitrary access for general calculations.
+		// flags:
+		//		IParallelCompute::kShared - buffer is shared with graphics API (for example OpenCL/DX).
+		//		IParallelCompute::kAutoLength - compute buffer has auto counter of elements.
 
 
-	ID3D11Buffer* createDxApiBuffer(D3D11_BIND_FLAG bind, uint32_t sizeBytes, bool bWritable, bool bReadable, void* pData);
+	ID3D11Buffer* createDxApiBuffer(D3D11_BIND_FLAG bind, size_t sizeBytes, bool bWritable, bool bReadable, void* pData);
 	void* openDxApiBuffer(ID3D11Buffer* pDxApiBuffer);
 	void closeDxApiBuffer(ID3D11Buffer* pDxApiBuffer);
 	void copyBuffers(ID3D11Buffer* pDestBuffer, ID3D11Buffer* pSourBuffer);
@@ -176,15 +197,15 @@ public:
 
 
 	//  GPU compute API.
-	Shader createComputeProgram(cstring csFile, CShaderMacroStrings defines);
+	ID3D11ComputeShader* createComputeShader(cstring csFile, CShaderMacroStrings defines);
 
-	void setComputeProgram(Shader pProgram);
+	void setComputeShader(ID3D11ComputeShader* pShader);
 
-	void setComputeBuffer(IUABuffer* buffer, uint32_t slot);
+	void setUABuffer(UABufferDX11* buffer, uint32_t slot);
 
-	void setConstantBufferCS(ConstantBuffer pCBuffer, UINT slot);
+	void setConstantBufferCS(ComputeBuffer buffer, UINT slot);
 
-	void bindUABufferToTextureVS(UABuffer buffer, UINT slot);
+	//void bindUABufferToTextureVS(UABufferDX11* buffer, UINT slot);
 
 	void setComputeTexture(Texture texture, uint32_t slot);
 
@@ -201,9 +222,17 @@ public:
 	virtual void setRasterState(uint32_t rasterType) override final;
 
 
+	//ID3D11Buffer* createConstantBufferDX(size_t sizeBytes);
+
+
 	virtual void prepareDrawing() override final;
 
 	virtual void presentDrawing() override final;
+
+
+	ID3D11Device* getDevice()
+	{  return pDevice3D_;
+	}
 
 	friend class IRender;
 
@@ -277,13 +306,11 @@ private:
 	int fontsTextureW_ = 2048;
 	int fontsTextureH_ = 2048;
 
-	// IWICImagingFactory
-	IWICImagingFactory* pImagingFactory_ = nullptr;
+	//IWICImagingFactory* pImagingFactory_ = nullptr;
 
 	// 2D sprite data.
 	VertexInput pSpriteVertInput_ = nullptr;
 	ConstantBuffer pSpriteCBufferVS_ = nullptr;
-	//ConstantBuffer pSpriteCBufferPS_ = nullptr;
 	ShaderProgram pSpriteShaderProgram_ = nullptr;
 	VertexBuffer pSpriteVertexBuffer_ = nullptr;
 	VertexBuffer pSpriteVBufferInst_ = nullptr;

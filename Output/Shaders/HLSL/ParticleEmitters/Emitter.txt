@@ -2,7 +2,7 @@
 // It should correspond to struct EmitProps in file ParticleEmitter.h
 
 
-cbuffer Emitter : register(b0)
+cbuffer Emitter : register(b3)
 {
 	float4 Pos  : packoffset(c0);
 	float4 Size : packoffset(c1);

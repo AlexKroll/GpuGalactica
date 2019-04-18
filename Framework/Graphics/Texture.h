@@ -26,15 +26,26 @@ public:
 
 	enum Type
 	{
+		DefaultUsage = 0,
 		StaticTexture = 1,		// Texture is in GPU memory. GPU uses it as source.
 		RenderTarget = 2,		// Texture is in GPU memory. GPU uses it as destination.
 		DynamicTexture = 3,		// Texture is in CPU-GPU memory. CPU writes / GPU reads the texture.
 		GdiCompatible = 4		// Texture is used for GDI drawing (text, figures, etc).
 	};
 
+	static const uint32_t kMiscShared = 1;
+
 	HRESULT getDimentions(int& width, int& height) const;
 
 	PixelFormat getFormat() const;
+
+	void setComputeImage(void* image)  { computeImage_ = image; }
+
+	void* getComputeImage() const  { return computeImage_; }
+
+	void shareImage()  { bShared_ = true; }
+
+	bool isShared() const  { return bShared_; }
 
 	static int getBytesPerPixel(PixelFormat format);
 
@@ -51,7 +62,21 @@ protected:
 
 	UINT multisampleCount_ = 1;
 	UINT multisampleQuality_ = 0;
+
+	bool bShared_ = false;  // The resource is shared between graphics and compute APIs.
+
+	void* computeImage_ = nullptr;	// Pointer to compute (CL, cuda) image.
 };
 
 //typedef ITexture* Texture;
 typedef std::shared_ptr<ITexture> Texture;
+
+
+
+class EmptyTexture_impl : public ITexture
+{
+protected:
+	virtual void release() override final {}
+};
+
+typedef std::shared_ptr<EmptyTexture_impl> EmptyTexture;

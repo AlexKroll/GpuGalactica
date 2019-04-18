@@ -3,7 +3,7 @@
 static const char* strObjNames[Scene::kObjTypeMax] = { "", "Galo", "GaloJets", "SpiralStars", "SpiralDust", "Supernovas", "Space" };
 
 
-Scene::Scene(Render pRender, Input* pInput, Gui* pGui, ParallelCompute pCompute)
+Scene::Scene(Render pRender, Input* pInput, Gui pGui, ParallelCompute pCompute)
 {
 	pRender_ = pRender;
 	pInput_ = pInput;
@@ -17,7 +17,7 @@ Scene::~Scene()
 	for (BaseObject* pUnit : objects_)
 		SAFE_DELETE(pUnit);
 
-	ParticleEmitter::finalize();
+	ParticleEmitter::finalize(pRender_);
 }
 
 
@@ -43,6 +43,10 @@ void Scene::createGalaxyObjects()
 	spiralStarDustTexture_ = pRender_->LoadTextureFromFile("Textures/SpiralStarDust.dds");
 	supernovaStarsTexture_ = pRender_->LoadTextureFromFile("Textures/SupernovaStars.dds");
 
+	int res = ParticleEmitter::initGeneralData(pRender_, pCompute_);
+	if (res != 0)
+		return;
+
 	{
 		#define Vel Vec3
 		#define Size12 Vec2
@@ -59,6 +63,47 @@ void Scene::createGalaxyObjects()
 		#define Vel12 Vec2
 	}
 
+
+// Test...
+/*{	ShaderMacroStrings macros = {
+		 std::make_pair("PARTICLE_POS_SPHERE", "")
+		,std::make_pair("PARTICLE_VELOCITY", "")
+		,std::make_pair("PARTICLE_SIZE_RANDOM", "")
+		,std::make_pair("PARTICLE_RANDOM_TFRAME", "")
+		,std::make_pair("PARTICLE_PROC_ALPHA", "")
+		,std::make_pair("PARTICLE_COLOR_MUL_ALPHA", "")
+		,std::make_pair("PARTICLE_LIFE_RANDOM", "")
+		,std::make_pair("PARTICLE_MWORLD", "")
+	};
+
+	ParticleEmitter* pEmitter = nullptr;
+
+	int nums = 512*2;
+	int parts = 0;
+	for(int z = -5; z < 5; z++)
+	{
+		if( parts > 100000 ) break;
+		for(int x = -6; x < 6; x++)
+		{
+			float fx = (float)x * 30.0f;
+			float fz = (float)z * 30.0f;
+
+			pEmitter = createObject<ParticleEmitter>(strObjNames[kObjGaloJets], Pos(fx,0,fz,1), Orient(0,0,0,0), Size(1,0,1,1), nullptr, galoJetsTexture_);
+			if (pEmitter)
+			{	pEmitter->color_ = Color(0xFFFFAA66);
+				pEmitter->setProperties(nums, Period(0.0f), NumTexFrames(4), Vel(0,10,0), pRender_, pCompute_, Intensity(nums),
+					Size12(10,15), SizeRate(0.01f), Life12(10.0f,15.0f), AlphaFade12(0.1f,0.9f), Radius12(3,5), Vel12(2,4), macros);
+			}
+
+			parts += nums;
+			if( parts > 100000 ) break;
+		}
+	}
+	parts = 0;
+}*/
+// ...test
+
+
 	// Space.
 	{
 		ParticleEmitter* pEmitter = nullptr;
@@ -74,7 +119,7 @@ void Scene::createGalaxyObjects()
 		if (pEmitter)
 		{	pEmitter->color_ = Color(0xFFCC9944);
 
-			pEmitter->setProperties(512, Period(0), NumTexFrames(4), Vel(0,0,0), pRender_, pCompute_, Intensity(512),
+			pEmitter->setProperties(512, Period(0), NumTexFrames(4), Vel(0,0,0), pRender_, Intensity(512),
 					Size12(20,30), SizeRate(0), Life12(9999,9999), AlphaFade12(0,0), Radius12(1000,1900), Vel12(0,0), macros);
 		}
 
@@ -82,7 +127,7 @@ void Scene::createGalaxyObjects()
 		if (pEmitter)
 		{	pEmitter->color_ = Color(0xFFCC9944);
 
-			pEmitter->setProperties(512, Period(0), NumTexFrames(4), Vel(0,0,0), pRender_, pCompute_, Intensity(512),
+			pEmitter->setProperties(512, Period(0), NumTexFrames(4), Vel(0,0,0), pRender_, Intensity(512),
 					Size12(20,30), SizeRate(0), Life12(9999,9999), AlphaFade12(0,0), Radius12(1000,1900), Vel12(0,0), macros);
 		}
 	}
@@ -117,7 +162,7 @@ void Scene::createGalaxyObjects()
 			if (pEmitter)
 			{	pEmitter->color_ = Color(0xFFFFAA66);
 
-				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, pCompute_, Intensity(num_parts),
+				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, Intensity(num_parts),
 					Size12(12,25), SizeRate(0), Life12(9999,9999), AlphaFade12(0,0), Radius12(4,7), Vel12(0,0), macros);
 
 				pEmitter->setExtendedProperties(0xFF997711, 0xFF2255AA, 8.0);
@@ -127,7 +172,7 @@ void Scene::createGalaxyObjects()
 			if (pEmitter)
 			{	pEmitter->color_ = Color(0xFFFFAA66);
 
-				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, pCompute_, Intensity(num_parts),
+				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, Intensity(num_parts),
 					Size12(12,25), SizeRate(0), Life12(9999,9999), AlphaFade12(0,0), Radius12(4,7), Vel12(0,0), macros);
 
 				pEmitter->setExtendedProperties(0xFF997711, 0xFF2255AA, 8.0);
@@ -145,12 +190,13 @@ void Scene::createGalaxyObjects()
 			,std::make_pair("PARTICLE_RANDOM_TFRAME", "")
 			,std::make_pair("PARTICLE_PROC_ALPHA", "")
 			,std::make_pair("PARTICLE_COLOR_MUL_ALPHA", "")
+			,std::make_pair("PARTICLE_LIFE_RANDOM", "")
 		};
 
 		ParticleEmitter* pEmitter = createObject<ParticleEmitter>(strObjNames[kObjGalo], Pos(0,0,0,1), Orient(0,0,0,0), Size(11,5,11,1), nullptr, galoTexture_);
 		if (pEmitter)
 		{	pEmitter->color_ = Color(0xFFFFAA66);
-			pEmitter->setProperties(256, Period(0.05f), NumTexFrames(4), Vel(0,0,0), pRender_, pCompute_, Intensity(6),
+			pEmitter->setProperties(256+64, Period(0.05f), NumTexFrames(4), Vel(0,0,0), pRender_, Intensity(6),
 				Size12(7,11), SizeRate(1.7f), Life12(2,3), AlphaFade12(0.3f,0.7f), Radius12(1,2), Vel12(0,0), macros);
 		}
 	}
@@ -164,6 +210,7 @@ void Scene::createGalaxyObjects()
 			,std::make_pair("PARTICLE_RANDOM_TFRAME", "")
 			,std::make_pair("PARTICLE_PROC_ALPHA", "")
 			,std::make_pair("PARTICLE_COLOR_MUL_ALPHA", "")
+			,std::make_pair("PARTICLE_LIFE_RANDOM", "")
 		};
 
 		ParticleEmitter* pEmitter = nullptr;
@@ -171,14 +218,14 @@ void Scene::createGalaxyObjects()
 		pEmitter = createObject<ParticleEmitter>(strObjNames[kObjGaloJets], Pos(0,0,0,1), Orient(0,0,0,0), Size(1,0,1,1), nullptr, galoJetsTexture_);
 		if (pEmitter)
 		{	pEmitter->color_ = Color(0xFFFFAA66);
-			pEmitter->setProperties(256, Period(0.05f), NumTexFrames(4), Vel(0,90,0), pRender_, pCompute_, Intensity(2),
+			pEmitter->setProperties(128, Period(0.05f), NumTexFrames(4), Vel(0,90,0), pRender_, Intensity(2),
 				Size12(15,25), SizeRate(-10), Life12(1.0f,1.5f), AlphaFade12(0.1f,0.9f), Radius12(1,2), Vel12(0.9f,1), macros);
 		}
 
 		pEmitter = createObject<ParticleEmitter>(strObjNames[kObjGaloJets], Pos(0,0,0,1), Orient(0,0,0,0), Size(1,0,1,1), nullptr, galoJetsTexture_);
 		if (pEmitter)
 		{	pEmitter->color_ = Color(0xFFFFAA66);
-			pEmitter->setProperties(256, Period(0.05f), NumTexFrames(4), Vel(0,-90,0), pRender_, pCompute_, Intensity(2),
+			pEmitter->setProperties(128, Period(0.05f), NumTexFrames(4), Vel(0,-90,0), pRender_, Intensity(2),
 				Size12(15,25), SizeRate(-10), Life12(1.0f,1.5f), AlphaFade12(0.1f,0.9f), Radius12(1,2), Vel12(0.9f,1), macros);
 		}
 	}
@@ -210,7 +257,7 @@ void Scene::createGalaxyObjects()
 			if (pEmitter)
 			{	pEmitter->color_ = Color(0xFFFFAA66);
 
-				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, pCompute_, Intensity(num_parts),
+				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, Intensity(num_parts),
 					Size12(5,11), SizeRate(0), Life12(9999,9999), AlphaFade12(0,0), Radius12(2,3), Vel12(0,0), macros);
 			}
 
@@ -218,7 +265,7 @@ void Scene::createGalaxyObjects()
 			if (pEmitter)
 			{	pEmitter->color_ = Color(0xFFFFAA66);
 
-				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, pCompute_, Intensity(num_parts),
+				pEmitter->setProperties(num_parts, Period(0), NumTexFrames(8), Vel(0,0,0), pRender_, Intensity(num_parts),
 					Size12(5,11), SizeRate(0), Life12(9999,9999), AlphaFade12(0,0), Radius12(2,3), Vel12(0,0), macros);
 			}
 
@@ -252,13 +299,12 @@ void Scene::createGalaxyObjects()
 			if (pEmitter)
 			{	pEmitter->color_ = Color(0xFFFFCCAA);
 
-				pEmitter->setProperties(num_parts, Period(0.3f), NumTexFrames(4), Vel(0,0,0), pRender_, pCompute_, Intensity(1),
+				pEmitter->setProperties(num_parts, Period(0.3f), NumTexFrames(4), Vel(0,0,0), pRender_, Intensity(1),
 					Size12(5,7), SizeRate(30), Life12(0.7f,1.1f), AlphaFade12(0.1f,0.6f), Radius12(2,3), Vel12(0,0), macros);
 			}
 
 			ang += ang_shift;
 		}
-		
 	}
 
 	{

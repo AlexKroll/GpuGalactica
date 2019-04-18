@@ -1,6 +1,6 @@
 
-#include "csParticle.txt"
-#include "csEmitProperties.txt"
+#include "Particle.txt"
+#include "Emitter.txt"
 
 
 RWStructuredBuffer<Particle> particles : register(u0);
@@ -11,7 +11,7 @@ AppendStructuredBuffer<int> FreeIndices : register(u1);
 
 
 
-void Main( uint3 threadId : SV_GroupThreadID )
+void Main(uint3 threadId : SV_GroupThreadID)
 {
 	uint ind = threadId.x;
 
@@ -27,7 +27,7 @@ void Main( uint3 threadId : SV_GroupThreadID )
 		particles[ind].vel += particles[ind].accel * Time;
 
 		if( particles[ind].time < 0.0f )
-		{	particles[ind].pos.xyz = -9999999.0f;		//  hide particle from viewport space
+		{	particles[ind].pos.xyz = -9999999.0f;		//  move the particle outside of the view space
 			particles[ind].pos.w = 0.0f;
 
 			FreeIndices.Append(ind);

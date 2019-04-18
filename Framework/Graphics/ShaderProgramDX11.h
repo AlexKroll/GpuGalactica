@@ -40,8 +40,8 @@ typedef ShaderDX11<ID3D11PixelShader> PShaderDX11;
 typedef std::shared_ptr<PShaderDX11> PixelShaderDX11;
 
 // DX Compute shader
-typedef ShaderDX11<ID3D11ComputeShader> CShaderDX11;
-typedef std::shared_ptr<CShaderDX11> ComputeShaderDX11;
+//typedef ShaderDX11<ID3D11ComputeShader> CShaderDX11;
+//typedef std::shared_ptr<CShaderDX11> ComputeShaderDX11;
 
 
 
@@ -56,7 +56,7 @@ public:
 	virtual Shader getPixelShader() final;
 
 private:
-	static const bool bDebugEnabled_ = true;
+	static const bool bDebugEnabled_ = false;
 
 	VertexShaderDX11 pVertexShader_ = nullptr;
 	PixelShaderDX11 pPixelShader_ = nullptr;
@@ -64,6 +64,14 @@ private:
 	ID3DBlob* compileShaderCode(PCCHAR pCodeText, PCCHAR pTarget, D3D_SHADER_MACRO* pDefines);
 
 	ID3D11DeviceChild* createShaderFromFile(cstring filePath, PCCHAR pTarget, CShaderMacroStrings defines, ID3D11Device* pDevice);
+
+public:
+	ShaderProgramDX11() {}
+
+	virtual ~ShaderProgramDX11()
+	{
+		release();
+	}
 
 	friend class RenderDX11;
 };

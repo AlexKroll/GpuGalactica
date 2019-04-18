@@ -9,7 +9,7 @@
 #include "../Utils/PointRect.h"
 #include "../Utils/Delegate.h"
 
-class Gui;
+class WidgGui;
 
 
 class Widget
@@ -26,13 +26,13 @@ protected:
 	Widget() {}
 	~Widget() {}
 
-	virtual void nativeMouseDown(Gui*, byte) {  }
+	virtual void nativeMouseDown(WidgGui*, byte) {  }
 
 	virtual void nativeMouseClick(byte) {  }
 
-	virtual void process(Gui* pGui, float elapsedTime);
+	virtual void process(WidgGui* pGui, float elapsedTime);
 
-	virtual void draw(Render pRender, Gui* pGui);
+	virtual void draw(Render pRender, WidgGui* pGui);
 
 	enum Type : BYTE
 	{
@@ -73,7 +73,7 @@ protected:
 private:
 	void init(Type type, CPoint pos, Texture texture, CRect texRect, cstring text, uint32_t textColor);
 
-	void processHighlighting(Gui* pGui, float elapsedTime);
+	void processHighlighting(WidgGui* pGui, float elapsedTime);
 
-friend class Gui;
+friend class WidgGui;
 };

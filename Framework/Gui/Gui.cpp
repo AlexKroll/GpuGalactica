@@ -2,11 +2,11 @@
 
 
 
-Gui* Gui::getInstance(Render render)
+WidgGui* WidgGui::getInstance(Render render)
 {
-	static Gui* pGui = nullptr;
+	static WidgGui* pGui = nullptr;
 	if (nullptr == pGui)
-		pGui = new Gui;
+		pGui = new WidgGui;
 
 	if (pGui)
 		pGui->pRender_ = render;
@@ -15,21 +15,21 @@ Gui* Gui::getInstance(Render render)
 }
 
 
-void Gui::setColors(uint32_t panelTextColor, uint32_t buttonTextColor)
+void WidgGui::setColors(uint32_t panelTextColor, uint32_t buttonTextColor)
 {
 	panelTextColor_ = panelTextColor;
 	buttonTextColor_ = buttonTextColor;
 }
 
 
-void Gui::setWidgetHighlighting(uint32_t highColor, float highTime, uint32_t fadeColor, float fadeTime)
+void WidgGui::setWidgetHighlighting(uint32_t highColor, float highTime, uint32_t fadeColor, float fadeTime)
 {
 	highColor_ = highColor,  highTime_ = highTime;
 	fadeColor_ = fadeColor, fadeTime_ = fadeTime;
 }
 
 
-void Gui::setButtonBoxData(Texture texture, CRect uncheckedRadioRect, CRect checkedRadioRect,
+void WidgGui::setButtonBoxData(Texture texture, CRect uncheckedRadioRect, CRect checkedRadioRect,
 							CRect uncheckedCheckRect, CRect checkedCheckRect)
 {
 	buttonBoxTexture_ = texture;
@@ -40,7 +40,7 @@ void Gui::setButtonBoxData(Texture texture, CRect uncheckedRadioRect, CRect chec
 }
 
 
-Panel* Gui::createPanel(CPoint pos, Texture texture, CRect texRect, cstring title)
+Panel* WidgGui::createPanel(CPoint pos, Texture texture, CRect texRect, cstring title)
 {
 	Panel* pPanel = new Panel;
 	if (nullptr == pPanel)
@@ -57,7 +57,7 @@ Panel* Gui::createPanel(CPoint pos, Texture texture, CRect texRect, cstring titl
 }
 
 
-Button* Gui::createButton(CPoint pos, Texture texture, CRect texRect, cstring caption)
+Button* WidgGui::createButton(CPoint pos, Texture texture, CRect texRect, cstring caption)
 {
 	Button* pButton = new Button;
 	if (nullptr == pButton)
@@ -74,7 +74,7 @@ Button* Gui::createButton(CPoint pos, Texture texture, CRect texRect, cstring ca
 }
 
 
-ButtonBox* Gui::createButtonBox(CPoint pos, Texture texture, uint32_t checks, const std::vector<std::string> itemsText,cstring title, bool bRadioButtons)
+ButtonBox* WidgGui::createButtonBox(CPoint pos, Texture texture, uint32_t checks, const std::vector<std::string> itemsText,cstring title, bool bRadioButtons)
 {
 	ButtonBox* pBox = new ButtonBox;
 	if (nullptr == pBox || nullptr == pRender_)
@@ -93,12 +93,12 @@ ButtonBox* Gui::createButtonBox(CPoint pos, Texture texture, uint32_t checks, co
 }
 
 
-/*ButtonBox* Gui::createCheckButtonBox(CPoint pos, Texture texture, CRect texRect, std::vector<cstring> itemsText)
+/*ButtonBox* WidgGui::createCheckButtonBox(CPoint pos, Texture texture, CRect texRect, std::vector<cstring> itemsText)
 {
 }*/
 
 
-TextLabel* Gui::createTextLabel(CPoint pos, cstring text, uint32_t color)
+TextLabel* WidgGui::createTextLabel(CPoint pos, cstring text, uint32_t color)
 {
 	TextLabel* pLabel = new TextLabel;
 	if (nullptr == pLabel || nullptr == pRender_)
@@ -115,7 +115,7 @@ TextLabel* Gui::createTextLabel(CPoint pos, cstring text, uint32_t color)
 }
 
 
-int32_t Gui::getButtonBoxCheckIndex()
+int32_t WidgGui::getButtonBoxCheckIndex()
 {
 	if (pCurrBox_)
 	{
@@ -125,7 +125,7 @@ int32_t Gui::getButtonBoxCheckIndex()
 }
 
 
-uint32_t Gui::getkButtonBoxCheckFlags()
+uint32_t WidgGui::getkButtonBoxCheckFlags()
 {
 	if (pCurrBox_)
 	{
@@ -135,11 +135,11 @@ uint32_t Gui::getkButtonBoxCheckFlags()
 }
 
 
-void Gui::activateWidget(Widget* pwidget)
+void WidgGui::activateWidget(Widget* pwidget)
 {
 	if (pwidget)
 	{	pwidget->order_ = widgetOrderTop_++;
-		pwidget->states_ |= Gui::Active | Gui::Visible;
+		pwidget->states_ |= WidgGui::Active | WidgGui::Visible;
 
 		for (Widget* pchild : pwidget->childs_)
 			activateWidget(pchild);
@@ -147,11 +147,11 @@ void Gui::activateWidget(Widget* pwidget)
 }
 
 
-void Gui::hideWidget(Widget* pwidget)
+void WidgGui::hideWidget(Widget* pwidget)
 {
 	if (pwidget)
 	{	pwidget->order_ = 1;
-		pwidget->states_ &= ~(Gui::Active | Gui::Visible);
+		pwidget->states_ &= ~(WidgGui::Active | WidgGui::Visible);
 
 		for (Widget* pchild : pwidget->childs_)
 			hideWidget(pchild);
@@ -161,7 +161,7 @@ void Gui::hideWidget(Widget* pwidget)
 }
 
 
-void Gui::destroyWidget(Widget* pwidget)
+void WidgGui::destroyWidget(Widget* pwidget)
 {
 	if (pwidget)
 	{
@@ -178,7 +178,7 @@ void Gui::destroyWidget(Widget* pwidget)
 }
 
 
-void Gui::process(std::shared_ptr<Input> pInput, float elapsedTime)
+void WidgGui::process(std::shared_ptr<Input> pInput, float elapsedTime)
 {
 	pCurrMaster_ = nullptr;
 	pCurrBox_ = nullptr;
@@ -236,10 +236,10 @@ void Gui::process(std::shared_ptr<Input> pInput, float elapsedTime)
 		if (0 == pwidget->order_)
 			continue;
 
-		if (pwidget->states_ & Gui::Active && pwidget->highColor_ != pwidget->fadeColor_)
+		if (pwidget->states_ & WidgGui::Active && pwidget->highColor_ != pwidget->fadeColor_)
 			pwidget->processHighlighting(this, elapsedTime);
 
-		if (pwidget->states_ & Gui::Active)
+		if (pwidget->states_ & WidgGui::Active)
 			pwidget->process(this, elapsedTime);
 	}
 
@@ -269,14 +269,14 @@ void Gui::process(std::shared_ptr<Input> pInput, float elapsedTime)
 }
 
 
-void Gui::render()
+void WidgGui::render()
 {
 	if (nullptr == pRender_)
 		return;
 
 	for (Widget* pwidget : widgets_)
 	{
-		if (pwidget->states_ & Gui::Visible)
+		if (pwidget->states_ & WidgGui::Visible)
 			pwidget->draw(pRender_, this);
 	}
 

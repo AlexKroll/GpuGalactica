@@ -57,6 +57,12 @@ bool Input::isMouseButtonClick(byte button) const
 }
 
 
+int Input::getMouseMediumWheelRolling()
+{
+	return mouseMediumWheel_;
+}
+
+
 void Input::setMouseMediumWheelScrolling(signed short scrolling)
 {
 	mouseMediumWheel_ = scrolling;

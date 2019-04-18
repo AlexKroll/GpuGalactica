@@ -53,7 +53,7 @@ FontDX11* FontDX11::createFont(Render* pRender, Texture pCommonFontTexture, PCCH
 	HRESULT hr = pDxTexture->QueryInterface(&pDxgiSurface);
 	if (hr != S_OK)
 	{
-		ShowError(nullptr, __FUNCTION__, " error: ID3D11Texture2D::QueryInterface(IDXGISurface1) is failed.");
+		ShowError(nullptr, __FUNCTION__, " error: ID3D11Texture2D::QueryInterface(IDXGISurface1) failed.");
 		return nullptr;
 	}
 
@@ -61,7 +61,7 @@ FontDX11* FontDX11::createFont(Render* pRender, Texture pCommonFontTexture, PCCH
 	hr = pDxgiSurface->GetDC(false, &hdc);
 	if (hr != S_OK)
 	{
-		ShowError(nullptr, __FUNCTION__, " error: IDXGISurface1::GetDC is failed.");
+		ShowError(nullptr, __FUNCTION__, " error: IDXGISurface1::GetDC failed.");
 		//int refs = pDxgiSurface->Release();
 		return nullptr;
 	}
@@ -70,7 +70,7 @@ FontDX11* FontDX11::createFont(Render* pRender, Texture pCommonFontTexture, PCCH
 							  NONANTIALIASED_QUALITY, 0, fontName);
 	if (hFont == nullptr)
 	{
-		ShowError(nullptr, __FUNCTION__, " error: GDI::CreateFontA is failed.");
+		ShowError(nullptr, __FUNCTION__, " error: GDI::CreateFontA failed.");
 		//int refs = pDxgiSurface->Release();
 		return nullptr;
 	}

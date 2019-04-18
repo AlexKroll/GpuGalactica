@@ -28,9 +28,14 @@ struct RenderContext
 class VertexInputDX11 : public IVertexInput
 {
 public:
-	virtual void* getNativeCode() final
+	virtual void* getNativeVertexLayout() final
 	{
 		return pInputLayout_;
+	}
+
+	virtual ~VertexInputDX11()
+	{
+		SAFE_RELEASE_DX(pInputLayout_);
 	}
 
 private:

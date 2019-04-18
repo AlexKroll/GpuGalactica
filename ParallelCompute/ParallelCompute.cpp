@@ -1,5 +1,5 @@
 #include "ParallelCompute.h"
-#include "DirectCompute11.h"
+#include "DirectX11Compute.h"
 #include "OpenCLCompute.h"
 #include "CudaCompute.h"
 
@@ -12,7 +12,7 @@ IParallelCompute* IParallelCompute::getCompute(Type type)
 	switch (type)
 	{
 		case DX11:
-			pCompute = new DirectCompute11;
+			pCompute = new DirectX11Compute;
 			break;
 
 		case OPENCL:
@@ -24,5 +24,13 @@ IParallelCompute* IParallelCompute::getCompute(Type type)
 			break;
 	}
 
+	pCompute->type_ = type;
+
 	return pCompute;
+}
+
+
+IParallelCompute::Type IParallelCompute::getType() const
+{
+	return type_;
 }

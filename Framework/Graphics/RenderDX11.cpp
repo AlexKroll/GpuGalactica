@@ -7,6 +7,7 @@ using Microsoft::WRL::ComPtr;
 #include "FontDX11.h"
 #include "RenderDX11.h"
 #include "FileDDS.h"
+#include "../../ParallelCompute/DirectX11Compute.h"
 //#include "FileTGA.h"
 
 
@@ -30,7 +31,7 @@ int RenderDX11::init(HWND hWnd, bool bWindowed)
 
 	UINT device_flags = D3D11_CREATE_DEVICE_SINGLETHREADED;
 
-	device_flags |= D3D11_CREATE_DEVICE_DEBUG;
+	//device_flags |= D3D11_CREATE_DEVICE_DEBUG;
 
 	if (bWindowed)
 	{	RECT ClientRect;
@@ -76,7 +77,7 @@ int RenderDX11::init(HWND hWnd, bool bWindowed)
 	if (hr != S_OK)
 		return hr;
 
-	hr = pDevice3D_->CreateRenderTargetView(pback_buffer, NULL, &pMainRenderTargetView_);
+	hr = pDevice3D_->CreateRenderTargetView(pback_buffer, nullptr, &pMainRenderTargetView_);
 	if (hr != S_OK)
 		return hr;
 
@@ -166,9 +167,9 @@ int RenderDX11::init(HWND hWnd, bool bWindowed)
 	//pFontsTexture_ = createTexture(fontsTextureW_, fontsTextureH_, ITexture::ColorBGRA8, ITexture::GdiCompatible);
 
 	// IWICImagingFactory for loading textures.
-	hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), reinterpret_cast<LPVOID*>(&pImagingFactory_));
-	if (hr != S_OK)
-		return hr;
+	//hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), reinterpret_cast<LPVOID*>(&pImagingFactory_));
+	//if (hr != S_OK)
+	//	return hr;
 
 	// Sprite data: vertex input, shader program, quad geometry.
 	{
@@ -230,18 +231,40 @@ void RenderDX11::release()
 {
 	FontDX11::finalize();
 
-	depthEnabledState_ = nullptr;
-	depthDisabledState_ = nullptr;
-	depthWriteOffState_ = nullptr;
+	pDepthBuffer_ = nullptr;
 
-	pBlendNormalState_ = nullptr;
-	pBlendAdditiveState_ = nullptr;
-	pBlendOffState_ = nullptr;
+	SAFE_RELEASE_DX(depthEnabledState_);
+	SAFE_RELEASE_DX(depthDisabledState_);
+	SAFE_RELEASE_DX(depthWriteOffState_);
 
+	SAFE_RELEASE_DX(pBlendNormalState_);
+	SAFE_RELEASE_DX(pBlendAdditiveState_);
+	SAFE_RELEASE_DX(pBlendOffState_);
+
+	SAFE_RELEASE_DX(pDefaultSampler_);
+	SAFE_RELEASE_DX(pPointClampSampler_);
+	SAFE_RELEASE_DX(pLinearWrapSampler_);
+
+	SAFE_RELEASE_DX(pDefaultRasterState_);
+	SAFE_RELEASE_DX(pCullOffRasterState_);
+
+	pSpriteVertInput_ = nullptr;
+	pSpriteCBufferVS_ = nullptr;
 	pSpriteShaderProgram_ = nullptr;
 	pSpriteVertexBuffer_ = nullptr;
 	pSpriteVBufferInst_ = nullptr;
 	pSpriteIndexBuffer_ = nullptr;
+
+	pCurrVertexInput_ = nullptr;
+	pCurrShaderProgram_ = nullptr;
+
+	for (Texture& pTexture : pCurrTextures_)
+		pTexture = nullptr;
+
+	for (VertexBuffer& vb : pCurrVertexBuffers_)
+		vb = nullptr;
+
+	pCurrIndexBuffer_ = nullptr;
 
 	commonRelease();
 
@@ -251,11 +274,16 @@ void RenderDX11::release()
 	SAFE_RELEASE_DX(pMainDepthStencilView_);
 	pCurrDepthStencilView_ = nullptr;
 
-	pImagingFactory_ = nullptr;
+	//pImagingFactory_ = nullptr;
 
 	SAFE_RELEASE_DX(pSwapChain_);
 
 	SAFE_RELEASE_DX(pDeviceContext_);
+
+
+//ID3D11Debug* pDebug = nullptr;
+//HRESULT hr = pDevice3D_->QueryInterface(__uuidof(ID3D11Debug), (void**)&pDebug);
+//hr = pDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 
 	SAFE_RELEASE_DX(pDevice3D_);
 }
@@ -291,7 +319,14 @@ Mesh RenderDX11::createMesh(uint32_t sizeBytes, void* pVertices, byte vertexSize
 }
 
 
-Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat format, ITexture::Type type, BYTE* pPixels)
+void RenderDX11::releaseMesh(Mesh& pMesh)
+{
+	if (pMesh)
+		pMesh = nullptr;
+}
+
+
+Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat format, ITexture::Type type, uint32_t flags, BYTE* pPixels)
 {
 	D3D11_TEXTURE2D_DESC desc;
 	desc.Width = width;
@@ -304,7 +339,10 @@ Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat
     desc.Usage = D3D11_USAGE_DEFAULT;
 
 	desc.CPUAccessFlags = 0;
+
 	desc.MiscFlags = 0;
+	if (flags & ITexture::kMiscShared)
+		desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
 
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
@@ -344,7 +382,7 @@ Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat
 	HRESULT hr = pDevice3D_->CreateTexture2D(&desc, pdata, &pDxApiTexture);
 	if (hr != S_OK)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateTexture2D is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateTexture2D failed.");
 		return nullptr;
 	}
 
@@ -360,7 +398,7 @@ Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat
 		hr = pDevice3D_->CreateRenderTargetView(pDxApiTexture, &rt_desc, &pRndrTrgtView);
 		if (hr != S_OK)
 		{
-			ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateRenderTargetView is failed.");
+			ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateRenderTargetView failed.");
 
 			if (pDxApiTexture)
 				pDxApiTexture->Release();
@@ -379,7 +417,7 @@ Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat
 	hr = pDevice3D_->CreateShaderResourceView(pDxApiTexture, &view_desc, &pShaderView);
 	if (hr != S_OK)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateShaderResourceView is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateShaderResourceView failed.");
 
 		if (pDxApiTexture)
 			pDxApiTexture->Release();
@@ -390,7 +428,7 @@ Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat
 	//TextureDX11impl* pTexture = new TextureDX11impl;
 	if (nullptr == pTexture)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Memory allocation is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Memory allocation failed.");
 
 		return nullptr;
 	}
@@ -405,7 +443,7 @@ Texture RenderDX11::createTexture(UINT width, UINT height, ITexture::PixelFormat
 }
 
 
-Texture RenderDX11::createTexture1D(UINT width, ITexture::PixelFormat format, ITexture::Type type, BYTE* pPixels)
+Texture RenderDX11::createTexture1D(UINT width, ITexture::PixelFormat format, ITexture::Type type, uint32_t flags, BYTE* pPixels)
 {
 	D3D11_TEXTURE1D_DESC desc;
 	desc.Width = width;
@@ -414,7 +452,10 @@ Texture RenderDX11::createTexture1D(UINT width, ITexture::PixelFormat format, IT
     desc.Format = TextureDX11impl::PixFormats[format];
     desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.CPUAccessFlags = 0;
+
 	desc.MiscFlags = 0;
+	if (flags & ITexture::kMiscShared)
+		desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
 
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
@@ -444,7 +485,7 @@ Texture RenderDX11::createTexture1D(UINT width, ITexture::PixelFormat format, IT
 	HRESULT hr = pDevice3D_->CreateTexture1D(&desc, pdata, &pDxApiTexture);
 	if (hr != S_OK)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateTexture2D is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateTexture2D failed.");
 		return nullptr;
 	}
 
@@ -459,7 +500,7 @@ Texture RenderDX11::createTexture1D(UINT width, ITexture::PixelFormat format, IT
 	hr = pDevice3D_->CreateShaderResourceView(pDxApiTexture, &view_desc, &pShaderView);
 	if (hr != S_OK)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateShaderResourceView is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateShaderResourceView failed.");
 
 		if (pDxApiTexture)
 			pDxApiTexture->Release();
@@ -470,7 +511,7 @@ Texture RenderDX11::createTexture1D(UINT width, ITexture::PixelFormat format, IT
 	//TextureDX11impl* pTexture = new TextureDX11impl;
 	if (nullptr == pTexture)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Memory allocation is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Memory allocation failed.");
 
 		return nullptr;
 	}
@@ -512,7 +553,7 @@ Texture RenderDX11::createDepthBuffer(UINT width, UINT height, ITexture::PixelFo
 	HRESULT hr = pDevice3D_->CreateTexture2D(&desc, nullptr, &pDxApiTexture);
 	if (hr != S_OK)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateTexture2D is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateTexture2D failed.");
 		return nullptr;
 	}
 
@@ -527,7 +568,7 @@ Texture RenderDX11::createDepthBuffer(UINT width, UINT height, ITexture::PixelFo
 	hr = pDevice3D_->CreateDepthStencilView(pDxApiTexture, &depth_desc, &pDepthView);
 	if (hr != S_OK)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateDepthStencilView is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Error: ID3D11Device::CreateDepthStencilView failed.");
 
 		if (pDxApiTexture)
 			pDxApiTexture->Release();
@@ -539,7 +580,7 @@ Texture RenderDX11::createDepthBuffer(UINT width, UINT height, ITexture::PixelFo
 	TextureDX11 pTexture = std::shared_ptr<TextureDX11impl>(new TextureDX11impl);
 	if (nullptr == pTexture)
 	{
-		ShowError(hWindow_, __FUNCTION__, ". Memory allocation is failed.");
+		ShowError(hWindow_, __FUNCTION__, ". Memory allocation failed.");
 
 		return nullptr;
 	}
@@ -603,10 +644,7 @@ Texture RenderDX11::LoadTextureFromFile(cstring filePath)
 		wchar_t filePathWide[512];
 		MultiByteToWideChar( CP_ACP, 0, filePath.c_str(), -1, filePathWide, _countof(filePathWide) );
 
-		//HANDLE hf = CreateFileW(filePathWide, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-
-		ComPtr<IWICBitmapDecoder> decoder;
-		//HRESULT hr = pImagingFactory_->CreateDecoderFromFileHandle(reinterpret_cast<ULONG_PTR>(hf), nullptr, WICDecodeMetadataCacheOnLoad, decoder.GetAddressOf());
+		/*ComPtr<IWICBitmapDecoder> decoder;
 		HRESULT hr = pImagingFactory_->CreateDecoderFromFilename(filePathWide, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf());
 		if (hr == S_OK)
 		{
@@ -702,13 +740,13 @@ Texture RenderDX11::LoadTextureFromFile(cstring filePath)
 
 			//decoder.Get()->Release();
 			//CloseHandle(hf);
-		}
+		}*/
 	}
 
 	if (pixels.get() && ITexture::UnknownFormat != texFormat)
 	{
 //LL:
-		Texture texture = createTexture(width, height, texFormat, ITexture::StaticTexture, pixels.get());
+		Texture texture = createTexture(width, height, texFormat, ITexture::StaticTexture, 0, pixels.get());
 		return texture;
 	}
 
@@ -1092,34 +1130,40 @@ void RenderDX11::setViewport(const D3D11_VIEWPORT& vp)
 
 ShaderProgram RenderDX11::createShaderProgram(PCCHAR pVertText, PCCHAR pPixText)
 {
-	ShaderProgramDX11* pProgram = new ShaderProgramDX11;
-	if (nullptr == pProgram)
+	ShaderProgramDX11* pProgramDX11 = new ShaderProgramDX11;
+	if (nullptr == pProgramDX11)
 		return nullptr;
 
 	D3D_SHADER_MACRO* pDefines = nullptr;
 
-	ComPtr<ID3DBlob> pDxVsCode = pProgram->compileShaderCode(pVertText, "vs_5_0", pDefines);
+	ComPtr<ID3DBlob> pDxVsCode = pProgramDX11->compileShaderCode(pVertText, "vs_5_0", pDefines);
 	if (pDxVsCode)
 	{
 		ID3D11VertexShader* pDxVertexShader = nullptr;
 		HRESULT hr = pDevice3D_->CreateVertexShader(pDxVsCode->GetBufferPointer(), pDxVsCode->GetBufferSize(), nullptr, &pDxVertexShader);
 		if (S_OK == hr)
 		{
-			ComPtr<ID3DBlob> pDxPsCode = pProgram->compileShaderCode(pPixText, "ps_5_0", pDefines);
+			//hr = pDxVertexShader->SetPrivateData( WKPDID_D3DDebugObjectName, strlen("vs"), "vs" );
+
+			ComPtr<ID3DBlob> pDxPsCode = pProgramDX11->compileShaderCode(pPixText, "ps_5_0", pDefines);
 			if (pDxPsCode)
 			{
 				ID3D11PixelShader* pDxPixelShader = nullptr;
 				hr = pDevice3D_->CreatePixelShader(pDxPsCode->GetBufferPointer(), pDxPsCode->GetBufferSize(), nullptr, &pDxPixelShader);
 				if (S_OK == hr)
 				{
-					linkShaderProgram(pProgram, pDxVertexShader, pDxPixelShader);
+					//hr = pDxPixelShader->SetPrivateData( WKPDID_D3DDebugObjectName, strlen("ps"), "ps" );
+
+					linkShaderProgram(pProgramDX11, pDxVertexShader, pDxPixelShader);
+
+					ShaderProgram pProgram = std::shared_ptr<ShaderProgramDX11>(pProgramDX11);
 					return pProgram;
 				}
 			}
 		}
 	}
 
-	SAFE_DELETE(pProgram);
+	SAFE_DELETE(pProgramDX11);
 	return nullptr;
 }
 
@@ -1134,20 +1178,22 @@ ShaderProgram RenderDX11::createShaderProgram(Shader pVShader, PCCHAR pPixText)
 	if (nullptr == pDxVertexShader)
 		return nullptr;
 
-	ShaderProgramDX11* pProgram = new ShaderProgramDX11;
-	if (nullptr == pProgram)
+	ShaderProgramDX11* pProgramDX11 = new ShaderProgramDX11;
+	if (nullptr == pProgramDX11)
 		return nullptr;
 
 	D3D_SHADER_MACRO* pDefines = nullptr;
 
-	ComPtr<ID3DBlob> pDxPsCode = pProgram->compileShaderCode(pPixText, "ps_5_0", pDefines);
+	ComPtr<ID3DBlob> pDxPsCode = pProgramDX11->compileShaderCode(pPixText, "ps_5_0", pDefines);
 	if (pDxPsCode)
 	{
 		ID3D11PixelShader* pDxPixelShader = nullptr;
 		HRESULT hr = pDevice3D_->CreatePixelShader(pDxPsCode->GetBufferPointer(), pDxPsCode->GetBufferSize(), nullptr, &pDxPixelShader);
 		if (S_OK == hr)
 		{
-			linkShaderProgram(pProgram, pDxVertexShader, pDxPixelShader);
+			linkShaderProgram(pProgramDX11, pDxVertexShader, pDxPixelShader);
+
+			ShaderProgram pProgram = std::shared_ptr<ShaderProgramDX11>(pProgramDX11);
 			return pProgram;
 		}
 	}
@@ -1166,20 +1212,22 @@ ShaderProgram RenderDX11::createShaderProgram(PCCHAR pVertText, Shader pPShader)
 	if (nullptr == pDxPixelShader)
 		return nullptr;
 
-	ShaderProgramDX11* pProgram = new ShaderProgramDX11;
-	if (nullptr == pProgram)
+	ShaderProgramDX11* pProgramDX11 = new ShaderProgramDX11;
+	if (nullptr == pProgramDX11)
 		return nullptr;
 
 	D3D_SHADER_MACRO* pDefines = nullptr;
 
-	ComPtr<ID3DBlob> pDxVsCode = pProgram->compileShaderCode(pVertText, "vs_5_0", pDefines);
+	ComPtr<ID3DBlob> pDxVsCode = pProgramDX11->compileShaderCode(pVertText, "vs_5_0", pDefines);
 	if (pDxVsCode)
 	{
 		ID3D11VertexShader* pDxVertexShader = nullptr;
 		HRESULT hr = pDevice3D_->CreateVertexShader(pDxVsCode->GetBufferPointer(), pDxVsCode->GetBufferSize(), nullptr, &pDxVertexShader);
 		if (S_OK == hr)
 		{
-			linkShaderProgram(pProgram, pDxVertexShader, pDxPixelShader);
+			linkShaderProgram(pProgramDX11, pDxVertexShader, pDxPixelShader);
+
+			ShaderProgram pProgram = std::shared_ptr<ShaderProgramDX11>(pProgramDX11);
 			return pProgram;
 		}
 	}
@@ -1190,23 +1238,25 @@ ShaderProgram RenderDX11::createShaderProgram(PCCHAR pVertText, Shader pPShader)
 
 ShaderProgram RenderDX11::createShaderProgram(cstring vsFile, cstring psFile, CShaderMacroStrings defines)
 {
-	ShaderProgramDX11* pProgram = new ShaderProgramDX11;
-	if (nullptr == pProgram)
+	ShaderProgramDX11* pProgramDX11 = new ShaderProgramDX11;
+	if (nullptr == pProgramDX11)
 		return nullptr;
 
 	std::string path = cShaderFolder_ + vsFile;
-	ID3D11VertexShader* pDxVertexShader = static_cast<ID3D11VertexShader*>(pProgram->createShaderFromFile(path, "vs_5_0", defines, pDevice3D_));
+	ID3D11VertexShader* pDxVertexShader = static_cast<ID3D11VertexShader*>(pProgramDX11->createShaderFromFile(path, "vs_5_0", defines, pDevice3D_));
 
 	path = cShaderFolder_ + psFile;
-	ID3D11PixelShader* pDxPixelShader = static_cast<ID3D11PixelShader*>(pProgram->createShaderFromFile(path, "ps_5_0", defines, pDevice3D_));
+	ID3D11PixelShader* pDxPixelShader = static_cast<ID3D11PixelShader*>(pProgramDX11->createShaderFromFile(path, "ps_5_0", defines, pDevice3D_));
 
 	if (pDxVertexShader && pDxPixelShader)
 	{
-		linkShaderProgram(pProgram, pDxVertexShader, pDxPixelShader);
+		linkShaderProgram(pProgramDX11, pDxVertexShader, pDxPixelShader);
+
+		ShaderProgram pProgram = std::shared_ptr<ShaderProgramDX11>(pProgramDX11);
 		return pProgram;
 	}
 
-	SAFE_DELETE(pProgram);
+	SAFE_DELETE(pProgramDX11);
 	return nullptr;
 }
 
@@ -1235,7 +1285,7 @@ void RenderDX11::setShaderProgram(ShaderProgram pProgram)
 	if (pCurrShaderProgram_ != pProgram)
 	{	pCurrShaderProgram_ = pProgram;
 
-		ShaderProgramDX11* pProgramDX11 = dynamic_cast<ShaderProgramDX11*>(pCurrShaderProgram_);
+		ShaderProgramDX11* pProgramDX11 = dynamic_cast<ShaderProgramDX11*>(pCurrShaderProgram_.get());
 		if (pProgramDX11)
 		{
 			VertexShaderDX11 pVertexShader = std::dynamic_pointer_cast<VShaderDX11>(pProgramDX11->getVertexShader());
@@ -1257,7 +1307,7 @@ ShaderProgram RenderDX11::getSpriteShaderProgram()
 }
 
 
-Shader RenderDX11::createComputeProgram(cstring csFile, CShaderMacroStrings defines)
+ID3D11ComputeShader* RenderDX11::createComputeShader(cstring csFile, CShaderMacroStrings defines)
 {
 	ShaderProgramDX11 program;
 	std::string path = cShaderFolder_ + csFile;
@@ -1265,81 +1315,81 @@ Shader RenderDX11::createComputeProgram(cstring csFile, CShaderMacroStrings defi
 	ID3D11ComputeShader* pDxComputeShader = static_cast<ID3D11ComputeShader*>(program.createShaderFromFile(path, "cs_5_0", defines, pDevice3D_));
 	if (pDxComputeShader)
 	{
-		ComputeShaderDX11 pCompShader = std::shared_ptr<CShaderDX11>(new CShaderDX11);
+		/*ComputeShaderDX11 pCompShader = std::shared_ptr<CShaderDX11>(new CShaderDX11);
 		if (pCompShader)
 		{	pCompShader->pDxShader_ = pDxComputeShader;
 			return pCompShader;
-		}
+		}*/
+
+		return pDxComputeShader;
 	}
 
 	return nullptr;
 }
 
 
-void RenderDX11::setComputeProgram(Shader pProgram)
+void RenderDX11::setComputeShader(ID3D11ComputeShader* pShader)
 {
-	if (pDeviceContext_ == nullptr)
+	if (nullptr == pDeviceContext_ || nullptr == pShader)
 		return;
 
-	IShader* pComputeShader = pProgram.get();
-	if (pComputeShader)
+	//IShader* pComputeShader = shader.get();
+	//if (pComputeShader)
 	{
-		ComputeShaderDX11 pComputeShaderDX11 = std::dynamic_pointer_cast<CShaderDX11>(pProgram);
+		//ComputeShaderDX11 pComputeShaderDX11 = std::dynamic_pointer_cast<CShaderDX11>(shader);
 
-		if (pComputeShaderDX11)
+		//if (pComputeShaderDX11)
 		{
-			pDeviceContext_->CSSetShader(pComputeShaderDX11->getDxShader(), nullptr, 0);
+			pDeviceContext_->CSSetShader(pShader, nullptr, 0); //pComputeShaderDX11->getDxShader()
 		}
 	}
 }
 
 
-void RenderDX11::setComputeBuffer(IUABuffer* buffer, uint32_t slot)
+void RenderDX11::setUABuffer(UABufferDX11* buffer, uint32_t slot)
 {
 	UINT count = 0xFFFFFFFF;
 	ID3D11UnorderedAccessView* ua_view = nullptr;
 
-	UABufferDX11* pBufferDX11 = dynamic_cast<UABufferDX11*>(buffer);
-	if (pBufferDX11)
-	{	ua_view = pBufferDX11->pDxUAView_;
+	//UABufferDX11* pBufferDX11 = dynamic_cast<UABufferDX11*>(buffer);
+	if (buffer) //pBufferDX11
+	{	ua_view = buffer->pDxUAView_; //pBufferDX11
 	}
 
 	pDeviceContext_->CSSetUnorderedAccessViews(slot, 1, &ua_view, &count);
 }
 
 
-void RenderDX11::setConstantBufferCS(ConstantBuffer pCBuffer, UINT slot)
+void RenderDX11::setConstantBufferCS(ComputeBuffer buffer, UINT slot)
 {
-	if (pCBuffer)
+	if (buffer)
 	{
-		ID3D11Buffer* pDxApiBuffer = static_cast<ID3D11Buffer*>(pCBuffer->getNativeBuffer());
-		if (pDxApiBuffer)
-			pDeviceContext_->CSSetConstantBuffers(slot, 1, &pDxApiBuffer);
+		UABufferDX11* pUABuffer = static_cast<UABufferDX11*>(buffer->getNativeBuffer());
+		if (pUABuffer)
+		{
+			ID3D11Buffer* pDxApiBuffer = pUABuffer->getDxBuffer();
+			if (pDxApiBuffer)
+				pDeviceContext_->CSSetConstantBuffers(slot, 1, &pDxApiBuffer);
+		}
 	}
 }
 
 
-void RenderDX11::bindUABufferToTextureVS(UABuffer buffer, UINT slot)
+/*void RenderDX11::bindUABufferToTextureVS(UABufferDX11* buffer, UINT slot)
 {
 	if (buffer)
-	{
-		IUABuffer* pb = buffer.get();
-		UABufferDX11* pBufferDX11 = dynamic_cast<UABufferDX11*>(pb);
-		//UABufferDX11* pBufferDX11 = std::dynamic_pointer_cast<UABuffer*>(buffer);
-
-		if (pBufferDX11)
-			pDeviceContext_->VSSetShaderResources(slot, 1, &pBufferDX11->pDxShaderView_);
+	{	pDeviceContext_->VSSetShaderResources(slot, 1, &buffer->pDxShaderView_);
 	}
 	else
 	{	ID3D11ShaderResourceView* pDxShaderView_[1] = { nullptr };
 		pDeviceContext_->VSSetShaderResources(slot, 1, pDxShaderView_);
 	}
-}
+}*/
 
 
 void RenderDX11::setComputeTexture(Texture texture, uint32_t slot)
 {
-	if (slot >=0 && slot < kMaxTextureSlots)
+	if (slot >= 0 && slot < kMaxTextureSlots)
 	{
 		if (texture)
 		{
@@ -1367,9 +1417,9 @@ void RenderDX11::setComputeSampler(uint32_t samplerType, uint32_t slot)
 }
 
 
-void RenderDX11::compute(UINT X, UINT Y, UINT Z)
+void RenderDX11::compute(uint32_t dim_x, uint32_t dim_y, uint32_t)
 {
-	pDeviceContext_->Dispatch(X, Y, Z);
+	pDeviceContext_->Dispatch(dim_x, dim_y, 1);
 
 }
 
@@ -1395,7 +1445,7 @@ VertexInput RenderDX11::createVertexInput(uint32_t vertexFlags, uint32_t instanc
 
 	UINT byte_offset = 0;
 
-	VertexInputDX11* pVertInput = nullptr;
+	VertexInputDX11* pVertInputDX11 = nullptr;
 
 	// Assemble the input elements and code for the shader blob.
 
@@ -1542,12 +1592,12 @@ VertexInput RenderDX11::createVertexInput(uint32_t vertexFlags, uint32_t instanc
 							&pInputLayout);
 		if (hr == S_OK)
 		{
-			pVertInput = new VertexInputDX11;
-			if (pVertInput)
-			{	pVertInput->strides[0] = strides[0];
-				pVertInput->strides[1] = strides[1];
-				pVertInput->numVertexComponents = static_cast<BYTE>(input_elems.size());
-				pVertInput->pInputLayout_ = pInputLayout;
+			pVertInputDX11 = new VertexInputDX11;
+			if (pVertInputDX11)
+			{	pVertInputDX11->strides[0] = strides[0];
+				pVertInputDX11->strides[1] = strides[1];
+				pVertInputDX11->numVertexComponents = static_cast<BYTE>(input_elems.size());
+				pVertInputDX11->pInputLayout_ = pInputLayout;
 			}
 		}
 
@@ -1556,6 +1606,7 @@ VertexInput RenderDX11::createVertexInput(uint32_t vertexFlags, uint32_t instanc
 
 	SAFE_DELETE(pProgram);
 
+	VertexInput pVertInput = std::shared_ptr<VertexInputDX11>(pVertInputDX11);
 	return pVertInput;
 }
 
@@ -1570,7 +1621,7 @@ void RenderDX11::setVertexInput(VertexInput pVertexInput)
 		pCurrVertexInput_ = pVertexInput;
 
 		if (pCurrVertexInput_)
-		{	ID3D11InputLayout* pInputLayout = static_cast<ID3D11InputLayout*>(pCurrVertexInput_->getNativeCode());
+		{	ID3D11InputLayout* pInputLayout = static_cast<ID3D11InputLayout*>(pCurrVertexInput_->getNativeVertexLayout());
 			if (pInputLayout)
 				pDeviceContext_->IASetInputLayout(pInputLayout);
 		}
@@ -1578,10 +1629,17 @@ void RenderDX11::setVertexInput(VertexInput pVertexInput)
 }
 
 
-ConstantBuffer RenderDX11::createConstantBuffer(uint32_t sizeBytes)
+void RenderDX11::releaseVertexInput(VertexInput& pVertexInput)
+{
+	if (pVertexInput)
+		pVertexInput = nullptr;
+}
+
+
+ConstantBuffer RenderDX11::createConstantBuffer(size_t sizeBytes)
 {
 	D3D11_BUFFER_DESC desc;
-	desc.ByteWidth = sizeBytes;
+	desc.ByteWidth = static_cast<UINT>(sizeBytes);
 	desc.Usage = D3D11_USAGE_DYNAMIC;
 	desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -1595,7 +1653,6 @@ ConstantBuffer RenderDX11::createConstantBuffer(uint32_t sizeBytes)
 		ConstantBufferDX11* pBufferDX11 = new ConstantBufferDX11;
 		if (pBufferDX11)
 		{	pDxApiBuffer.CopyTo(&pBufferDX11->pDxBuffer_);
-			//return pBufferDX11;
 
 			ConstantBuffer pBuff = std::shared_ptr<ConstantBufferDX11>(pBufferDX11);
 			return pBuff;
@@ -1828,7 +1885,58 @@ void RenderDX11::setIndexBuffer(IndexBuffer pIndexBuffer)
 }
 
 
-UABuffer RenderDX11::createUABuffer(int amountOfElems, int elemSize, bool bGPUlength)
+ComputeBuffer RenderDX11::createComputeBuffer(int amountOfElems, int elemSize, uint32_t flags)
+{
+	UABufferDX11* pUABufferDX = createUABuffer(amountOfElems, elemSize, flags);
+	if (pUABufferDX)
+	{
+		ComputeBufferDX11 pBuffer = std::shared_ptr<ComputeBufferDX11impl>(new ComputeBufferDX11impl);
+		pBuffer->pUABuffer_ = pUABufferDX;
+		return pBuffer;
+	}
+	return nullptr;
+}
+
+
+void RenderDX11::bindComputeBufferToTextureVS(ComputeBuffer buffer, UINT slot)
+{
+	/*ComputeBufferDX11 pBufferDX11 = std::dynamic_pointer_cast<ComputeBufferDX11impl>(buffer);
+	if (pBufferDX11)
+		bindUABufferToTextureVS(pBufferDX11->pUABuffer_, slot);
+	else
+		bindUABufferToTextureVS(nullptr, slot);*/
+
+	if (buffer)
+	{
+		UABufferDX11* pUABuffer = static_cast<UABufferDX11*>(buffer->getGraphicsBuffer());
+		if (pUABuffer)
+		{	pDeviceContext_->VSSetShaderResources(slot, 1, &pUABuffer->pDxShaderView_);
+			return;
+		}
+	}
+
+	ID3D11ShaderResourceView* pDxShaderView_[1] = { nullptr };
+	pDeviceContext_->VSSetShaderResources(slot, 1, pDxShaderView_);
+}
+
+
+ComputeBuffer RenderDX11::createConstantComputeBuffer(size_t sizeBytes)
+{
+	ComPtr<ID3D11Buffer> pDxBuffer = createDxApiBuffer(D3D11_BIND_CONSTANT_BUFFER, sizeBytes, true, false, nullptr);
+	if (pDxBuffer)
+	{
+		ComputeBufferDX11 pBuffer = std::shared_ptr<ComputeBufferDX11impl>(new ComputeBufferDX11impl);
+		pBuffer->pUABuffer_ = new UABufferDX11;
+		if (pBuffer->pUABuffer_)
+			pDxBuffer.CopyTo(&pBuffer->pUABuffer_->pDxBuffer_);
+
+		return pBuffer;
+	}
+	return nullptr;
+}
+
+
+UABufferDX11* RenderDX11::createUABuffer(int amountOfElems, int elemSize, uint32_t flags)
 {
 	// Buffer
 	D3D11_BUFFER_DESC desc;
@@ -1836,7 +1944,11 @@ UABuffer RenderDX11::createUABuffer(int amountOfElems, int elemSize, bool bGPUle
 	desc.Usage = D3D11_USAGE_DEFAULT;
 	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 	desc.CPUAccessFlags = 0;
+
 	desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	if (flags & IParallelCompute::kShared)
+		desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
+
 	desc.StructureByteStride = elemSize;
 	
 	//ComPtr<ID3D11Buffer> pDxApiBuffer;
@@ -1851,11 +1963,11 @@ UABuffer RenderDX11::createUABuffer(int amountOfElems, int elemSize, bool bGPUle
 	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 	uav_desc.Buffer.FirstElement = 0;
     uav_desc.Buffer.NumElements = amountOfElems;
-	uav_desc.Buffer.Flags = (bGPUlength) ? D3D11_BUFFER_UAV_FLAG_APPEND : 0;
+	uav_desc.Buffer.Flags = (flags & IParallelCompute::kAutoLength) ? D3D11_BUFFER_UAV_FLAG_APPEND : 0;
 
 	//ComPtr<ID3D11UnorderedAccessView> pUAView;
 	ID3D11UnorderedAccessView* pUAView;
-	hr = pDevice3D_->CreateUnorderedAccessView(pDxApiBuffer/*.Get()*/, &uav_desc, &pUAView);
+	hr = pDevice3D_->CreateUnorderedAccessView(pDxApiBuffer, &uav_desc, &pUAView);
 	if (S_OK != hr )
 		return nullptr;
 
@@ -1868,7 +1980,7 @@ UABuffer RenderDX11::createUABuffer(int amountOfElems, int elemSize, bool bGPUle
 
 	//ComPtr<ID3D11ShaderResourceView> pSRView;
 	ID3D11ShaderResourceView* pSRView;
-	hr = pDevice3D_->CreateShaderResourceView(pDxApiBuffer/*.Get()*/, &srv_desc, &pSRView);
+	hr = pDevice3D_->CreateShaderResourceView(pDxApiBuffer, &srv_desc, &pSRView);
 	if (S_OK != hr )
 		return nullptr;
 
@@ -1877,19 +1989,18 @@ UABuffer RenderDX11::createUABuffer(int amountOfElems, int elemSize, bool bGPUle
 	if (nullptr == pBufferDX11)
 		return nullptr;
 
-	pBufferDX11->pDxBuffer_=pDxApiBuffer;  //pDxApiBuffer.CopyTo(&pBufferDX11->pDxBuffer_);
-	pBufferDX11->pDxUAView_=pUAView;  //	pUAView.CopyTo(&pBufferDX11->pDxUAView_);
-	pBufferDX11->pDxShaderView_=pSRView;  //pSRView.CopyTo(&pBufferDX11->pDxShaderView_);
+	pBufferDX11->pDxBuffer_ = pDxApiBuffer;
+	pBufferDX11->pDxUAView_ = pUAView;
+	pBufferDX11->pDxShaderView_ = pSRView;
 
-	UABuffer pBuff = std::shared_ptr<IUABuffer>(pBufferDX11);
-	return pBuff;
+	return pBufferDX11;
 }
 
 
-ID3D11Buffer* RenderDX11::createDxApiBuffer(D3D11_BIND_FLAG bind, uint32_t sizeBytes, bool bWritable, bool bReadable, void* pData)
+ID3D11Buffer* RenderDX11::createDxApiBuffer(D3D11_BIND_FLAG bind, size_t sizeBytes, bool bWritable, bool bReadable, void* pData)
 {
 	D3D11_BUFFER_DESC desc;
-	desc.ByteWidth = sizeBytes;
+	desc.ByteWidth = static_cast<UINT>(sizeBytes);
 	desc.BindFlags = bind;
 	desc.MiscFlags = 0;
 	desc.StructureByteStride = 0;
@@ -1914,6 +2025,14 @@ ID3D11Buffer* RenderDX11::createDxApiBuffer(D3D11_BIND_FLAG bind, uint32_t sizeB
 			desc.Usage = D3D11_USAGE_DEFAULT;
 	}
 
+if (bind == D3D11_BIND_SHADER_RESOURCE)
+{	desc.MiscFlags = D3D11_RESOURCE_MISC_SHARED; //D3D11_RESOURCE_MISC_RESTRICT_SHARED_RESOURCE
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.CPUAccessFlags = 0;
+	desc.StructureByteStride = 16;
+	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+}
+
 	D3D11_SUBRESOURCE_DATA* pInitData = nullptr;;
 	D3D11_SUBRESOURCE_DATA vbInitData;
 	if (pData)
@@ -1923,8 +2042,8 @@ ID3D11Buffer* RenderDX11::createDxApiBuffer(D3D11_BIND_FLAG bind, uint32_t sizeB
 	}
 
 	ID3D11Buffer* pDxApiBuffer = nullptr;
-	HRESULT hr = pDevice3D_->CreateBuffer( &desc, pInitData, &pDxApiBuffer );
-	if (S_OK == hr )
+	HRESULT hr = pDevice3D_->CreateBuffer(&desc, pInitData, &pDxApiBuffer);
+	if (S_OK == hr)
 		return pDxApiBuffer;
 	else
 		return nullptr;

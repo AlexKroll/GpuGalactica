@@ -1,0 +1,104 @@
+
+#include "Particle.txt"
+#include "Emitter.txt"
+
+__constant sampler_t Samp = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_LINEAR;
+
+#include "Randoms.txt"
+
+
+
+
+__kernel  __attribute__((vec_type_hint(float4)))
+		  __attribute__((work_group_size_hint(MAX_PARTICLES / NUM_GROUPS, 1, 1)))
+void Main(__global Particle* parts, __global int* FreeIndices, __read_only image2d_t RandomTex,
+		  __constant struct CEmitter* Emitter)
+{
+	int nums = atomic_dec(&FreeIndices[0]);
+	if( nums <= 0 )
+	{	FreeIndices[0] = 0;
+		return;
+	}
+	int gind = FreeIndices[nums];
+
+	int ind = get_local_id(0);
+
+	__local Particle particles[MAX_PARTICLES / NUM_GROUPS];
+	particles[ind] = parts[gind];
+
+
+
+#ifdef PARTICLE_POS_SPHERE
+	float3 pos = RandomSphere(&particles[ind], RandomTex, Emitter);
+	particles[ind].pos.xyz = pos * Emitter->Size.xyz;
+#endif
+
+
+
+#ifdef PARTICLE_VELOCITY
+	float velocity = RandomF(&particles[ind], RandomTex, Emitter->Velocity1, Emitter->Velocity2, Emitter->Randoms.x);
+	particles[ind].vel.xyz = Emitter->VelocityDir_FactorPow.xyz * velocity;
+#endif
+
+	particles[ind].vel.w = Emitter->Size.w;
+
+
+#ifdef PARTICLE_SIZE_RANDOM
+	particles[ind].pos.w = RandomF(&particles[ind], RandomTex, Emitter->Size1, Emitter->Size2, Emitter->Randoms.x);
+#else
+	particles[ind].pos.w = Size1;
+#endif
+
+
+#ifdef PARTICLE_LIFE_RANDOM
+	particles[ind].time = RandomF(&particles[ind], RandomTex, Emitter->Life1, Emitter->Life2, Emitter->Randoms.x);
+#else
+	particles[ind].time = Emitter->Life1;
+#endif
+	particles[ind].life = 1.0f / particles[ind].time;
+
+
+#ifdef PARTICLE_RANDOM_TFRAME
+	int frame = RandomI(&particles[ind], RandomTex, Emitter->NumTexFrames, Emitter->Randoms.x);
+	float texu = (float)frame * Emitter->UvMulX * 65535.0f;
+	int itexu = (int)texu;
+	particles[ind].uv_add_x = itexu;
+#endif
+
+
+#ifdef PARTICLE_POS_SPIRAL
+
+	#ifdef PARTICLE_POS_SPIRAL_RANDOM
+		float F = RandomF01(&particles[ind], RandomTex, Emitter->Randoms.x);
+	#else
+		float F = (float)gind / (float)INTENSITY;// + 0.3f;
+	#endif
+
+	float R = 30.0f + pow(F,3.0f) * Emitter->Size.x;
+	float A = pow(F,0.8f) * 12.0f + Emitter->Size.y;
+	float x = sin(A) * R;
+	float z = cos(A) * R;
+
+	float3 pos = RandomSphere(&particles[ind], RandomTex, Emitter);
+
+	// Special processing for spiral dust.
+	#ifdef PARTICLE_SPIRAL_CN
+		pos *= pow(1.0f-F, 0.4f);
+		particles[ind].pos.w *= pow(1.0f-F, 0.4f) + 1.0f;
+		if( F < 0.3f )
+			particles[ind].pos.w *= 0.5f;
+	#endif
+
+	particles[ind].pos.xyz = pos + (float3)(x, 0, z) + Emitter->Pos.xyz;
+
+	#ifdef PARTICLE_FACTOR_POW
+		particles[ind].factor01 = pow(F, Emitter->VelocityDir_FactorPow.w);
+	#endif
+#endif
+
+	parts[gind] = particles[ind];
+}
+
+
+
+

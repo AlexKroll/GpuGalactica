@@ -19,7 +19,7 @@
 class Scene
 {
 public:
-	Scene(Render pRender, Input* pInput, Gui* pGui, ParallelCompute pCompute);
+	Scene(Render pRender, Input* pInput, Gui pGui, ParallelCompute pCompute);
 	~Scene();
 
 	void createGalaxyObjects();
@@ -39,7 +39,7 @@ public:
 
 	Input* getInput()  {  return pInput_;  }
 
-	Gui* getGui()  {  return pGui_;  }
+	Gui getGui()  {  return pGui_;  }
 
 	Render getRender()  {  return pRender_;  }
 
@@ -48,12 +48,12 @@ public:
 	void render();
 
 	// What objects to process and draw.
-	static const uint32_t kObjGalo			 = 1;
-	static const uint32_t kObjGaloJets		 = 2;
-	static const uint32_t kObjSpiralStars	 = 3;
-	static const uint32_t kObjSpiralStarDust = 4;
-	static const uint32_t kObjSupernovas	 = 5;
-	static const uint32_t kObjSpace			 = 6;
+	static const uint32_t kObjGalo			 = 1;	// flashing galo in the center of the galaxy
+	static const uint32_t kObjGaloJets		 = 2;	// jets up and down from the galaxy center
+	static const uint32_t kObjSpiralStars	 = 3;	// spiral arms with stars
+	static const uint32_t kObjSpiralStarDust = 4;	// dust inside the spirals
+	static const uint32_t kObjSupernovas	 = 5;	// flashes of super new stars
+	static const uint32_t kObjSpace			 = 6;	// stars, galaxies
 	static const uint32_t kObjTypeMax		 = 7;
 
 private:
@@ -63,7 +63,7 @@ private:
 
 	Input* pInput_ = nullptr;
 
-	Gui* pGui_ = nullptr;
+	Gui pGui_ = nullptr;
 
 	ParallelCompute pCompute_ = nullptr;
 

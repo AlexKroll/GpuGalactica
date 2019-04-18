@@ -37,10 +37,11 @@
     <ClCompile Include="Framework\Gui\TextLabel.cpp" />
     <ClCompile Include="Framework\Gui\Widget.cpp" />
     <ClCompile Include="Framework\Utils\Timer.cpp" />
+    <ClCompile Include="Framework\Utils\Utils.cpp" />
     <ClCompile Include="GpuGalaxy.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ParallelCompute\CudaCompute.cpp" />
-    <ClCompile Include="ParallelCompute\DirectCompute11.cpp" />
+    <ClCompile Include="ParallelCompute\DirectX11Compute.cpp" />
     <ClCompile Include="ParallelCompute\OpenCLCompute.cpp" />
     <ClCompile Include="ParallelCompute\ParallelCompute.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -51,6 +52,7 @@
     <ClCompile Include="SetsPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Framework\ComputeBuffer.h" />
     <ClInclude Include="Framework\Core\Application.h" />
     <ClInclude Include="Framework\Core\Input.h" />
     <ClInclude Include="Framework\Defines.h" />
@@ -88,8 +90,9 @@
     <ClInclude Include="Framework\Utils\Timer.h" />
     <ClInclude Include="Framework\Utils\Utils.h" />
     <ClInclude Include="GpuGalaxy.h" />
+    <ClInclude Include="ParallelCompute\ComputeItems.h" />
     <ClInclude Include="ParallelCompute\CudaCompute.h" />
-    <ClInclude Include="ParallelCompute\DirectCompute11.h" />
+    <ClInclude Include="ParallelCompute\DirectX11Compute.h" />
     <ClInclude Include="ParallelCompute\OpenCLCompute.h" />
     <ClInclude Include="ParallelCompute\ParallelCompute.h" />
     <ClInclude Include="Scene.h" />
@@ -97,6 +100,27 @@
     <ClInclude Include="SceneObjects\Billboard.h" />
     <ClInclude Include="SceneObjects\Camera.h" />
     <ClInclude Include="SceneObjects\ParticleEmitter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\EmitParticles.txt" />
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Emitter.txt" />
+    <Text Include="Output\Shaders\CL\ParticleEmitters\InitParticles.txt" />
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Math.txt" />
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Particle.txt" />
+    <Text Include="Output\Shaders\CL\ParticleEmitters\ProcParticles.txt" />
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Randoms.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\EmitParticles.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Emitter.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\InitParticles.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Math.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Particle.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\ProcParticles.txt" />
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Randoms.txt" />
+    <Text Include="Output\Shaders\HLSL\psTexMulColor.txt" />
+    <Text Include="Output\Shaders\HLSL\psTexMulVColor.txt" />
+    <Text Include="Output\Shaders\HLSL\vsBillboard.txt" />
+    <Text Include="Output\Shaders\HLSL\vsCamera.txt" />
+    <Text Include="Output\Shaders\HLSL\vsParticles.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -169,9 +193,12 @@
       <PreprocessorDefinitions>FPU;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>D3D11.lib; d3dcompiler.lib; kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D3D11.lib;d3dcompiler.lib;dxguid.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

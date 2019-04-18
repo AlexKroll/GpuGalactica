@@ -18,7 +18,7 @@ public:
 
 	bool isMouseButtonClick(byte button) const;
 
-	int getMouseMediumWheelRolling() const {  return mouseMediumWheel_;  }
+	int getMouseMediumWheelRolling();
 
 	void setMouseMediumWheelScrolling(signed short scrolling);
 

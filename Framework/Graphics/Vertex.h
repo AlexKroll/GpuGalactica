@@ -44,10 +44,13 @@ interface IVertexInput
 	BYTE numVertexComponents = 0;
 	BYTE strides[kMaxBindVertexBuffers] = {0};
 
-	virtual void* getNativeCode() = 0;
+	virtual void* getNativeVertexLayout() = 0;
+
+	virtual ~IVertexInput() {}
 };
 
-typedef IVertexInput* VertexInput;
+//typedef IVertexInput* VertexInput;
+typedef std::shared_ptr<IVertexInput> VertexInput;
 
 
 

@@ -25,6 +25,24 @@
     <Filter Include="Framework\Math">
       <UniqueIdentifier>{c570248c-a426-4d49-940a-52a985b348a0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{3e50b126-29ce-4f0a-97e1-c9b34a38bcf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\OpenCL">
+      <UniqueIdentifier>{d647f0a8-7542-49ab-9c2a-2702a2031445}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\GLSL">
+      <UniqueIdentifier>{4e3c241a-87bb-40f4-adfd-cc3d91890830}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\HLSL">
+      <UniqueIdentifier>{6bd31186-6d84-45af-8b37-005ceeae6626}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\HLSL\ParticleEmitters">
+      <UniqueIdentifier>{a12f22b9-f60d-40ae-9249-74b840a77f82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\OpenCL\ParticleEmitters">
+      <UniqueIdentifier>{caf4f6f6-425c-42a0-b030-7e2774bc00c2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
@@ -39,9 +57,6 @@
       <Filter>Framework\Core</Filter>
     </ClCompile>
     <ClCompile Include="ParallelCompute\ParallelCompute.cpp">
-      <Filter>ParallelCompute</Filter>
-    </ClCompile>
-    <ClCompile Include="ParallelCompute\DirectCompute11.cpp">
       <Filter>ParallelCompute</Filter>
     </ClCompile>
     <ClCompile Include="ParallelCompute\OpenCLCompute.cpp">
@@ -109,6 +124,12 @@
     <ClCompile Include="SceneObjects\Billboard.cpp">
       <Filter>SceneObjects</Filter>
     </ClCompile>
+    <ClCompile Include="ParallelCompute\DirectX11Compute.cpp">
+      <Filter>ParallelCompute</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework\Utils\Utils.cpp">
+      <Filter>Framework\Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Framework\Utils\Timer.h">
@@ -122,9 +143,6 @@
       <Filter>Framework\Core</Filter>
     </ClInclude>
     <ClInclude Include="ParallelCompute\ParallelCompute.h">
-      <Filter>ParallelCompute</Filter>
-    </ClInclude>
-    <ClInclude Include="ParallelCompute\DirectCompute11.h">
       <Filter>ParallelCompute</Filter>
     </ClInclude>
     <ClInclude Include="ParallelCompute\OpenCLCompute.h">
@@ -245,5 +263,73 @@
     <ClInclude Include="Framework\Math\Color.h">
       <Filter>Framework\Math</Filter>
     </ClInclude>
+    <ClInclude Include="ParallelCompute\ComputeItems.h">
+      <Filter>ParallelCompute</Filter>
+    </ClInclude>
+    <ClInclude Include="ParallelCompute\DirectX11Compute.h">
+      <Filter>ParallelCompute</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework\ComputeBuffer.h">
+      <Filter>Framework</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Output\Shaders\HLSL\psTexMulColor.txt">
+      <Filter>Shaders\HLSL</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\psTexMulVColor.txt">
+      <Filter>Shaders\HLSL</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\vsBillboard.txt">
+      <Filter>Shaders\HLSL</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\vsCamera.txt">
+      <Filter>Shaders\HLSL</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\vsParticles.txt">
+      <Filter>Shaders\HLSL</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\EmitParticles.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Emitter.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\InitParticles.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Math.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Particle.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\ProcParticles.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\HLSL\ParticleEmitters\Randoms.txt">
+      <Filter>Shaders\HLSL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\EmitParticles.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Emitter.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\InitParticles.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Math.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Particle.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\ProcParticles.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
+    <Text Include="Output\Shaders\CL\ParticleEmitters\Randoms.txt">
+      <Filter>Shaders\OpenCL\ParticleEmitters</Filter>
+    </Text>
   </ItemGroup>
 </Project>

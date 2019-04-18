@@ -2,6 +2,7 @@
 
 #include "ParticleEmitter.h"
 #include "../Scene.h"
+#include "../Framework/Graphics/RenderDX11.h"
 
 Mesh ParticleEmitter::pQuadMesh = nullptr;
 VertexInput ParticleEmitter::pVertexInput = nullptr;
@@ -13,12 +14,12 @@ std::vector<EmitterShaderContext> ParticleEmitter::ShaderContexts;
 
 
 
-void ParticleEmitter::init(cstring name, CVec4 pos, CVec4 orient, CVec4 size, Mesh pMesh, Texture pTexture, Render pRender)
+int ParticleEmitter::initGeneralData(Render pRender, ParallelCompute compute)
 {
-	BaseObject::init(name, pos, orient, size, pMesh, pTexture, pRender);
+	pCompute = compute;
 
-	// Quad geometry.
-	if (nullptr == pQuadMesh && pRender)
+	// The geometry of the quad (billboard).
+	if (nullptr == pQuadMesh && pRender && pCompute)
 	{
 		ParticleEmitter::pVertexInput = pRender->createVertexInput(kVertPosition2 | kVertTexCoord0, 0); //kInstanceId
 
@@ -31,36 +32,50 @@ void ParticleEmitter::init(cstring name, CVec4 pos, CVec4 orient, CVec4 size, Me
 		WORD indices[6] = { 0,1,2, 1,3,2 }; // Two triangles - 6 indices.
 
 		pQuadMesh = pRender->createMesh(sizeof(verts), verts, sizeof(ParticleVertex), indices, 2, nullptr);
+	}
 
-		// Generate a 1D texture that contains 16-bit float random numbers [0..1]. One texel consists of 4 numbers.
-		{	::InitRandomGenerator();
-			std::unique_ptr<WORD[]> pTextureNumbers = std::make_unique<WORD[]>(kRandomTexSize * 4);
-			if (pTextureNumbers)
+	// Generate a 1D texture that contains 16-bit float random numbers [0..1]. One texel consists of 4 numbers (RGBA).
+	{	::InitRandomGenerator();
+		std::unique_ptr<WORD[]> pTextureNumbers = std::make_unique<WORD[]>(kRandomTexSize * 4);
+		if (pTextureNumbers)
+		{
+			WORD* pNumbers = pTextureNumbers.get();
+			for (int i = 0; i < kRandomTexSize; ++i, pNumbers += 4)
 			{
-				WORD* pNumbers = pTextureNumbers.get();
-				for (int i = 0; i < kRandomTexSize; ++i, pNumbers += 4)
-				{
-					pNumbers[0] = Random(0, 65535);
-					pNumbers[1] = Random(0, 65535);
-					pNumbers[2] = Random(0, 65535);
-					pNumbers[3] = Random(0, 65535);
-				}
-
-				BYTE* pb = reinterpret_cast<BYTE*>(pTextureNumbers.get());
-				randomTexture = pRender->createTexture1D(kRandomTexSize, ITexture::Float16_4, ITexture::StaticTexture, pb);
+				pNumbers[0] = Random(0, 65535);
+				pNumbers[1] = Random(0, 65535);
+				pNumbers[2] = Random(0, 65535);
+				pNumbers[3] = Random(0, 65535);
 			}
+
+			BYTE* pb = reinterpret_cast<BYTE*>(pTextureNumbers.get());
+
+			//randomTexture = pRender->createTexture(kRandomTexSize, 1, ITexture::Float16_4, ITexture::DefaultUsage, ITexture::kMiscShared, pb);
+			//if (randomTexture)
+			//	pCompute->createImageIntoTexture(randomTexture, IParallelCompute::kBufferRead);
+
+			randomTexture = pCompute->createImage(kRandomTexSize, 1, ITexture::Float16_4, ITexture::DefaultUsage, IParallelCompute::kBufferRead, pb);
 		}
 	}
 
-	mesh_ = pQuadMesh;
+	return 0;
 }
 
 
-//#include "../Framework/Graphics/RenderDX11.h"
-int ParticleEmitter::setProperties(int maxParticles, float emitPeriod, int numTexFrames, CVec3 velocity, Render pRender, ParallelCompute pComput,
+void ParticleEmitter::init(cstring name, CVec4 pos, CVec4 orient, CVec4 size, Mesh pMesh, Texture pTexture, Render pRender)
+{
+	BaseObject::init(name, pos, orient, size, pMesh, pTexture, pRender);
+}
+
+
+int ParticleEmitter::setProperties(int maxParticles, float emitPeriod, int numTexFrames, CVec3 velocity, Render pRender,
 								int intensity, CVec2 size12, float sizeRate, CVec2 life12, CVec2 alphaFade, CVec2 radius12, CVec2 velocity12,
 								CShaderMacroStrings macroses)
 {
+	mesh_ = pQuadMesh;
+
+	intensity_ = intensity;
+
 	//emitVolume_ = emitVolume;
 
 	// Fill the properties of the emitter.
@@ -96,15 +111,30 @@ int ParticleEmitter::setProperties(int maxParticles, float emitPeriod, int numTe
 		properties_.color = color_;
 	}
 
-	pCompute = pComput;
+	if (IParallelCompute::DX11 == pCompute->getType())
+		computeDimX_ = 1;
+	else
+		computeDimX_ = maxParticles_;
 
 	// Constants/uniforms for emitter properties.
-	propsCBuffer_ = pRender->createConstantBuffer( sizeof(EmitProps) );
+	propsRenderCBuffer_ = pRender->createConstantBuffer(sizeof(EmitProps));
 
-	// Arbitrary read/write buffers for processing the particles.
-	partsBuffer_ = pCompute->createUABuffer(maxParticles_, sizeof(Particle), false);
-	freeIndsBuffer_ = pCompute->createUABuffer(maxParticles_, sizeof(int), true);  // Indices buffer can Append/Consume in the compute shaders.
+	//if (IParallelCompute::OPENCL == pCompute->getType())
+	//	propsComputeCBuffer_ = pCompute->createBuffer(1, sizeof(EmitProps), IParallelCompute::kBufferRead);
+	propsComputeCBuffer_ = pCompute->createConstantBuffer(sizeof(EmitProps));
 
+	// Arbitrary read/write buffers for processing the particles..
+	// Array of the particles.
+	partsBuffer_ = pCompute->createBuffer(maxParticles_, sizeof(Particle), IParallelCompute::kBufferReadWrite | IParallelCompute::kShared
+																		 //| IParallelCompute::kCpuNoAccess
+																							);
+	// Indices of the free (not processing) particles.
+	freeIndsBuffer_ = pCompute->createBuffer(maxParticles_, sizeof(int), IParallelCompute::kBufferReadWrite
+																	   | IParallelCompute::kAutoLength
+																		);
+																		 // kAutoLength - The counter of index buffer may be
+																		 // increased/decreased in the compute shaders.
+																										  
 	// Instance buffer
 	//pInstanceVBuffer_ = pRender->createVertexBuffer(sizeof(UINT) * maxParticles_, false, nullptr, sizeof(UINT));
 
@@ -112,7 +142,8 @@ int ParticleEmitter::setProperties(int maxParticles, float emitPeriod, int numTe
 	ShaderMacroStrings emitter_macros =
 	{
 		std::make_pair("MAX_PARTICLES", std::to_string(maxParticles_)),
-		std::make_pair("INTENSITY", std::to_string(intensity))
+		std::make_pair("INTENSITY", std::to_string(intensity)),
+		std::make_pair("NUM_GROUPS", std::to_string(procGroups_))
 	};
 
 	emitter_macros.insert(emitter_macros.end(), macroses.begin(), macroses.end());
@@ -121,18 +152,18 @@ int ParticleEmitter::setProperties(int maxParticles, float emitPeriod, int numTe
 	std::vector<EmitterShaderContext>::iterator it = std::find_if(ShaderContexts.begin(), ShaderContexts.end(),
 		[&emitter_macros] (const EmitterShaderContext& context) { return context.macroStrings == emitter_macros; } );
 
-	// There is not found. Create a new context: complie new compute shaders.
+	// There is not found. Create a new context: complie new compute tasks.
 	if (it == ShaderContexts.end())
 	{
-		Shader pInitPartsShader = pCompute->createComputeProgram("ParticleEmitters/csInitParticles.txt", emitter_macros);
+		ComputeTask pInitPartsTask = pCompute->createComputeTask("ParticleEmitters/InitParticles.txt", emitter_macros);
 
-		Shader pEmitPartsShader = pCompute->createComputeProgram("ParticleEmitters/csEmitParticles.txt", emitter_macros);
+		ComputeTask pEmitPartsTask = pCompute->createComputeTask("ParticleEmitters/EmitParticles.txt", emitter_macros);
 
-		Shader pProcPartsShader = pCompute->createComputeProgram("ParticleEmitters/csProcParticles.txt", emitter_macros);
+		ComputeTask pProcPartsTask = pCompute->createComputeTask("ParticleEmitters/ProcParticles.txt", emitter_macros);
 
 		ShaderProgram pShaderProgram = pRender->createShaderProgram("vsParticles.txt", "psTexMulVColor.txt", emitter_macros);
 
-		EmitterShaderContext* pContext_ = new EmitterShaderContext(maxParticles_, pInitPartsShader, pEmitPartsShader, pProcPartsShader,
+		EmitterShaderContext* pContext_ = new EmitterShaderContext(maxParticles_, pInitPartsTask, pEmitPartsTask, pProcPartsTask,
 																   pShaderProgram, emitter_macros);
 		if (pContext_)
 		{	shaderContextInd = static_cast<int16_t>(ShaderContexts.size());
@@ -154,38 +185,27 @@ int ParticleEmitter::setProperties(int maxParticles, float emitPeriod, int numTe
 
 		//pShaderProgram = context_.pDrawProgram;
 
-		pCompute->setComputeProgram(context_.pInitPartsShader);
+		pCompute->setComputeTask(context_.pInitPartsTask);
+
 		pCompute->setComputeBuffer(partsBuffer_, 0);
 		pCompute->setComputeBuffer(freeIndsBuffer_, 1);
 
-		pCompute->setTexture(randomTexture, 0);
-		pCompute->setSampler(IRender::kTexSamplerLinearWrap, 0);
+		pCompute->setImage(randomTexture, 2);
+		pCompute->setSampler(IRender::kTexSamplerLinearWrap, 2);
 
-		pCompute->compute(1, 1, 1);
+		pCompute->compute(computeDimX_, 1, procGroups_);
 
 		pCompute->setComputeBuffer(nullptr, 0);
 		pCompute->setComputeBuffer(nullptr, 1);
 
-// Post compute dump.
-/*
-pCompute->setComputeBuffer(nullptr, 0);
-pCompute->setComputeBuffer(nullptr, 1);
-int hh=0;
-//static ID3D11Buffer* DxBufferIndsDebug = 0;
-static ID3D11Buffer* DxBufferPartsDebug = 0;
-RenderDX11* pRender11 = (RenderDX11*)pRender;
-if( DxBufferPartsDebug == 0 )
-{	//DxBufferIndsDebug = pRender11->createDxApiBuffer((D3D11_BIND_FLAG)0, maxParticles_ * sizeof(int), false, true, nullptr);
-	DxBufferPartsDebug = pRender11->createDxApiBuffer((D3D11_BIND_FLAG)0, maxParticles_ * sizeof(Particle), false, true, nullptr);
+// Post-compute dump.
+static int dump = 0;
+if (dump)
+{
+	std::vector<Particle> parts = pCompute->debugDumpBuffer<Particle>(partsBuffer_);
+	std::vector<UINT> inds = pCompute->debugDumpBuffer<UINT>(freeIndsBuffer_);
+	dump++;
 }
-//pRender11->copyBuffers(DxBufferIndsDebug, (ID3D11Buffer*)freeIndsBuffer_->getNativeBuffer() );
-//UINT* pFreeInds = (UINT*)pRender11->openDxApiBuffer(DxBufferIndsDebug);
-//pRender11->closeDxApiBuffer(DxBufferIndsDebug);
-
-pRender11->copyBuffers(DxBufferPartsDebug, (ID3D11Buffer*)partsBuffer_->getNativeBuffer() );
-Particle* pParts = (Particle*)pRender11->openDxApiBuffer(DxBufferPartsDebug);
-pRender11->closeDxApiBuffer(DxBufferPartsDebug);
-int kk;*/
 	}
 
 	return 0;
@@ -201,26 +221,30 @@ void ParticleEmitter::setExtendedProperties(CColor color1, CColor color2, float 
 }
 
 
-void ParticleEmitter::finalize()
+void ParticleEmitter::finalize(Render pRender)
 {
-	for (EmitterShaderContext& context : ShaderContexts)
-	{
-		context.release();
-	}
+	if (nullptr == pRender)
+		return;
 
+	for (EmitterShaderContext& context : ShaderContexts)
+		context.release();
 	ShaderContexts.clear();
+
+	pRender->releaseMesh(pQuadMesh);
+	pRender->releaseVertexInput(pVertexInput);
+
+	pCompute->releaseImage(randomTexture);
 }
 
 
-void ParticleEmitter::process(float elapsedTime, Scene*)
+void ParticleEmitter::process(float elapsedTime, Scene* pScene)
 {
-	//Render pRender = pScene->getRender();
-
 	orient_.y -= 0.02f * elapsedTime;
 
 	if (!(states_ & kPresent))
 		return;
 
+	properties_.mWorld.setPos(pos_);
 	properties_.mWorld.setOrient(orient_);
 
 	//	Write emitter properties into contants
@@ -231,8 +255,10 @@ void ParticleEmitter::process(float elapsedTime, Scene*)
 
 	properties_.randoms = V4Random01();
 
-	pCompute->writeConstantBuffer(propsCBuffer_, properties_);
-	pCompute->setConstantBuffer(propsCBuffer_, 0);
+	Render render = pScene->getRender();
+	render->updateConstantBuffer(propsRenderCBuffer_, &properties_, sizeof(properties_));
+
+	pCompute->writeBuffer(propsComputeCBuffer_, properties_);
 
 	EmitterShaderContext* pContext_ = nullptr;
 	if (shaderContextInd >= 0 && shaderContextInd < ShaderContexts.size())
@@ -248,14 +274,31 @@ void ParticleEmitter::process(float elapsedTime, Scene*)
 
 			if (pCompute)
 			{
-				pCompute->setComputeProgram(pContext_->pEmitPartsShader);
+				pCompute->setComputeTask(pContext_->pEmitPartsTask);
+
 				pCompute->setComputeBuffer(partsBuffer_, 0);
 				pCompute->setComputeBuffer(freeIndsBuffer_, 1);
 
-				pCompute->setTexture(randomTexture, 0);
-				pCompute->setSampler(IRender::kTexSamplerLinearWrap, 0);
+				pCompute->setImage(randomTexture, 2);
+				pCompute->setSampler(IRender::kTexSamplerLinearWrap, 2);
 
-				pCompute->compute(1, 1, 1);
+				pCompute->setConstantBuffer(propsComputeCBuffer_, 3);
+
+				uint32_t Nums = (IParallelCompute::OPENCL == pCompute->getType()) ? intensity_ : computeDimX_;
+
+				pCompute->compute(Nums, 1, procGroups_);
+
+				pCompute->setComputeBuffer(nullptr, 0);
+				pCompute->setComputeBuffer(nullptr, 1);
+				pCompute->setComputeBuffer(nullptr, 3);
+
+// Post-compute dump.
+static int dump = 0;
+if (dump)
+{	std::vector<Particle> parts = pCompute->debugDumpBuffer<Particle>(partsBuffer_);
+	std::vector<UINT> inds = pCompute->debugDumpBuffer<UINT>(freeIndsBuffer_);
+	dump++;
+}
 			}
 		}
 
@@ -263,43 +306,37 @@ void ParticleEmitter::process(float elapsedTime, Scene*)
 			period_ = -1.0f;
 	}
 
+	// Processing the particles.
 	if (pCompute)
 	{
-		pCompute->setComputeProgram(pContext_->pProcPartsShader);
+		pCompute->setComputeTask(pContext_->pProcPartsTask);
+
 		pCompute->setComputeBuffer(partsBuffer_, 0);
 		pCompute->setComputeBuffer(freeIndsBuffer_, 1);
 
-		pCompute->compute(1, 1, 1);
+		uint32_t const_slot = (IParallelCompute::OPENCL == pCompute->getType()) ? 2 : 3;
+		pCompute->setConstantBuffer(propsComputeCBuffer_, const_slot);
+
+		pCompute->compute(computeDimX_, 1, procGroups_);
 
 		pCompute->setComputeBuffer(nullptr, 0);
 		pCompute->setComputeBuffer(nullptr, 1);
+		pCompute->setComputeBuffer(nullptr, 3);
 
-// Post compute dump.
-/*Render pRender = pScene->getRender();
-pCompute->setComputeBuffer(nullptr, 0);
-pCompute->setComputeBuffer(nullptr, 1);
-int hh=0; //"../Framework/Graphics/RenderDX11.h"
-static ID3D11Buffer* DxBufferIndsDebug = 0;
-static ID3D11Buffer* DxBufferPartsDebug = 0;
-RenderDX11* pRender11 = (RenderDX11*)pRender;
-if( DxBufferIndsDebug == 0 )
-{	DxBufferIndsDebug = pRender11->createDxApiBuffer((D3D11_BIND_FLAG)0, maxParticles_ * sizeof(int), false, true, nullptr);
-	DxBufferPartsDebug = pRender11->createDxApiBuffer((D3D11_BIND_FLAG)0, maxParticles_ * sizeof(Particle), false, true, nullptr);
+// Post-compute dump.
+static int dump = 0;
+if (dump)
+{	std::vector<Particle> parts = pCompute->debugDumpBuffer<Particle>(partsBuffer_);
+	std::vector<UINT> inds = pCompute->debugDumpBuffer<UINT>(freeIndsBuffer_);
+	dump++;
 }
-pRender11->copyBuffers(DxBufferIndsDebug, (ID3D11Buffer*)freeIndsBuffer_->getNativeBuffer() );
-UINT* pFreeInds = (UINT*)pRender11->openDxApiBuffer(DxBufferIndsDebug);
-pRender11->closeDxApiBuffer(DxBufferIndsDebug);
-
-pRender11->copyBuffers(DxBufferPartsDebug, (ID3D11Buffer*)partsBuffer_->getNativeBuffer() );
-Particle* pParts = (Particle*)pRender11->openDxApiBuffer(DxBufferPartsDebug);
-pRender11->closeDxApiBuffer(DxBufferPartsDebug);
-int kk;*/
 	}
 }
 
 
 void ParticleEmitter::render(Render pRender)
 {
+//return;
 	if (!(states_ & kPresent))
 		return;
 
@@ -312,8 +349,8 @@ void ParticleEmitter::render(Render pRender)
 	if (nullptr == pContext_ || nullptr == pRender || nullptr == pCompute)
 		return;
 
-	pCompute->bindUABufferToTextureVS(partsBuffer_, 0);
-	pRender->setConstantBufferVS(propsCBuffer_, 0);
+	pRender->bindComputeBufferToTextureVS(partsBuffer_, 0);
+	pRender->setConstantBufferVS(propsRenderCBuffer_, 3);
 
 	pRender->setVertexInput(pVertexInput);
 	pRender->setShaderProgram(pContext_->pDrawProgram);
@@ -333,5 +370,5 @@ void ParticleEmitter::render(Render pRender)
 	pRender->drawIndexedTrianglesInstanced(2, maxParticles_);
 	//pRender->drawIndexedTriangles(2);
 
-	pCompute->bindUABufferToTextureVS(0, 0);
+	pRender->bindComputeBufferToTextureVS(nullptr, 0);
 }

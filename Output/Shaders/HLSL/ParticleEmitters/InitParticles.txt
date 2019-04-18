@@ -1,11 +1,11 @@
 
-#include "csParticle.txt"
+#include "Particle.txt"
 
 
 RWStructuredBuffer<Particle> particles : register(u0);
 
-Texture1D RandomTex: register(t0);
-sampler Samp: register(s0);
+Texture2D RandomTex: register(t2);
+sampler Samp: register(s2);
 
 AppendStructuredBuffer<int> FreeIndices : register(u1);
 
@@ -26,10 +26,10 @@ void Main( uint3 threadId : SV_GroupThreadID )
 
 	particles[ind].accel = 0.0f;
 
-	particles[ind].uv_add_x = 0.0f;
-
 	float u = (float)ind / (float)MAX_PARTICLES;
-	particles[ind].random = RandomTex.SampleLevel(Samp,u,0).x;
+	float frandom = RandomTex.SampleLevel(Samp,u,0).x * 65535.0f;
+	int irandom = (int)frandom;
+	particles[ind].rand_texu_add = irandom;
 
 	FreeIndices.Append(ind);
 }

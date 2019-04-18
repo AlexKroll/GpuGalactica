@@ -15,10 +15,10 @@
 
 
 
-class Gui
+class WidgGui
 {
 public:
-	static Gui* getInstance(Render render);
+	static WidgGui* getInstance(Render render);
 
 	void setColors(uint32_t panelTextColor, uint32_t buttonTextColor);
 
@@ -100,7 +100,7 @@ public:
 	Texture buttonBoxTexture_ = nullptr;
 
 private:
-	Gui() {}
+	WidgGui() {}
 
 	Button* createButton(CPoint pos, Texture texture, CRect texRect, cstring caption);
 
@@ -123,3 +123,5 @@ private:
 
 	ButtonBox* pCurrBox_ = nullptr;
 };
+
+typedef std::shared_ptr<WidgGui> Gui;

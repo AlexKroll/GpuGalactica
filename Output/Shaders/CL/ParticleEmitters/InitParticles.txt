@@ -1,0 +1,35 @@
+
+#include "Particle.txt"
+
+
+__constant sampler_t Samp = CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_REPEAT | CLK_FILTER_LINEAR;
+
+// FreeIndices is an array of indices of the particles which are not processing.
+
+__kernel  __attribute__((vec_type_hint(float4)))
+		  //__attribute__((reqd_work_group_size(MAX_PARTICLES, 1, 1)))
+		  //__attribute__((work_group_size_hint(32, 1, 1)))
+void Main(__global Particle* particles, __global int* FreeIndices, __read_only image2d_t RandomTex)
+{
+	int ind = get_global_id(0);
+
+	particles[ind].time = -1.0f;
+
+	particles[ind].pos.xyz = (float3) -9999999.0f;  // particle is outside of the screen
+	particles[ind].pos.w = 0.0f;
+
+	particles[ind].vel = 0.0f;
+
+	particles[ind].accel = 0.0f;
+
+	// Generate individual random value for particle. This value will be used for generation the next random velue when emit.
+	float u = (float)ind / (float)MAX_PARTICLES;
+	float frandom = read_imagef(RandomTex, Samp, (float2)(u,0.0f)).x * 65535.0f;
+	ushort irandom = (int)frandom;
+	particles[ind].random = irandom;
+
+	FreeIndices[0] = MAX_PARTICLES;
+	FreeIndices[ind+1] = ind;	// 0th is counter.
+}
+
+

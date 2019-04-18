@@ -14,15 +14,7 @@ struct EmitterShaderContext;
 class ParticleEmitter : public BaseObject
 {
 public:
-	/*enum EmitVolume
-	{
-		None,
-		Sphere,
-		Cube,
-		Point
-	};*/
-
-	int setProperties(int maxParticles, float emitPeriod, int numTexFrames, CVec3 velocity, Render pRender, ParallelCompute pCompute,
+	int setProperties(int maxParticles, float emitPeriod, int numTexFrames, CVec3 velocity, Render pRender,
 					  int intensity, CVec2 size12, float sizeRate, CVec2 life12, CVec2 alphaFade, CVec2 radius12, CVec2 velocity12,
 					  CShaderMacroStrings macros);
 
@@ -35,16 +27,17 @@ protected:
 
 	virtual void render(Render pRender) override;
 
+	static int initGeneralData(Render pRender, ParallelCompute pCompute);
+
 	static Mesh pQuadMesh;
 	static VertexInput pVertexInput;
 	static ParallelCompute pCompute;
-	//static ShaderProgram pShaderProgram;
 	static const int kRandomTexSize = 4096;
-	static Texture randomTexture;
+	static Texture randomTexture;	// This image consists of random values in 0..1 range.
 
 	static std::vector<EmitterShaderContext> ShaderContexts;
 
-	static void finalize();
+	static void finalize(Render pRender);
 
 	struct ParticleVertex
 	{
@@ -54,22 +47,28 @@ protected:
 
 	struct Particle				// It should correspond to file "csParticle.txt"
 	{
-		Vec4	pos;
-		Vec4	vel;
-		Vec4	accel;
+		Vec4	pos;			// xyz - position, w - size
+		Vec4	vel;			// xyz - velocity, w - rate of size
+		Vec4	accel;			// xyz - accelerate, w - accelerate of size
 		float   time;
 		float   life;
 		float	factor01;
-		float   random;
-		float   uv_add_x;
+		unsigned short random;
+		unsigned short uv_add_x;
 	};
 
-	//EmitVolume emitVolume_ = None;
 
 	float period_ = 0.0f;		// The period of emitting of the particles.
 	float time_ = 0.0f;
 
 	int maxParticles_ = 0;		// Max particles per emitter. This the amount of the quads per DIP.
+
+	int computeDimX_ = 0;		// Number of compute threads (kernels).
+
+	int intensity_ = 0;			// Number of emitted particles per frame.
+
+	uint32_t procGroups_ = 16;	// Number of hardware units (group of threads, compute units) on GPU.
+								// It may be various for diffrenet hardware.
 
 	struct EmitProps			// The emitter properties: emittimg volume (sphere, cube, etc), size, radius, etc.
 	{							// It should correspond to file "csEmitProperties.txt"
@@ -122,12 +121,11 @@ protected:
 		Matrix4x3T mWorld;
 	};
 	EmitProps properties_;
-	ConstantBuffer propsCBuffer_ = nullptr;
+	ConstantBuffer propsRenderCBuffer_ = nullptr;	//  We can`t share constant buffer between DX and CL.
+	ComputeBuffer propsComputeCBuffer_ = nullptr;	//  So we have to keep two copies.
 
-	UABuffer partsBuffer_ = nullptr;		// GPU buffer where the particles lay.
-	UABuffer freeIndsBuffer_ = nullptr;		// GPU buffer where the indices of died particles lay.
-
-	//VertexBuffer pInstanceVBuffer_ = nullptr;
+	ComputeBuffer partsBuffer_ = nullptr;		// GPU buffer where the particles lay.
+	ComputeBuffer freeIndsBuffer_ = nullptr;	// GPU buffer where the indices of died particles lay.
 
 	int16_t shaderContextInd = -1;
 
@@ -142,28 +140,39 @@ struct EmitterShaderContext		// Different emitters have different ways of emitti
 
 	int maxParticles = 0;
 	ShaderMacroStrings macroStrings;
-	Shader pInitPartsShader;	// First inition: set the particles outside of view.
-	Shader pEmitPartsShader;	// Emitting the particles through (by means of) EmitProps.
-	Shader pProcPartsShader;	// Processing the particles: position, velocity, size, color, uv-transformation, etc.
+	ComputeTask pInitPartsTask;	// First inition: set the particles outside of view.
+	ComputeTask pEmitPartsTask;	// Emitting the particles through (by means of) EmitProps.
+	ComputeTask pProcPartsTask;	// Processing the particles: position, velocity, size, color, uv-transformation, etc.
 	ShaderProgram pDrawProgram;	// Draw the particles.
 
-	EmitterShaderContext(int maxParts, Shader pInitShader, Shader pEmitShader, Shader pProcShader, ShaderProgram pProgram, CShaderMacroStrings macroses)
+	EmitterShaderContext(int maxParts, ComputeTask pInitTask, ComputeTask pEmitTask, ComputeTask pProcTask, ShaderProgram pProgram, CShaderMacroStrings macroses)
 	{
 		maxParticles = maxParts;
 
 		macroStrings = macroses;
 
-		pInitPartsShader = pInitShader;
-		pEmitPartsShader = pEmitShader;
-		pProcPartsShader = pProcShader;
+		pInitPartsTask = pInitTask;
+		pEmitPartsTask = pEmitTask;
+		pProcPartsTask = pProcTask;
 		pDrawProgram = pProgram;
 	}
 
 	void release()
 	{
-		pInitPartsShader = nullptr;
-		pEmitPartsShader = nullptr;
-		pProcPartsShader = nullptr;
+		if (pInitPartsTask)
+			pInitPartsTask->release();
+		pInitPartsTask = nullptr;
+
+		if (pEmitPartsTask)
+			pEmitPartsTask->release();
+		pEmitPartsTask = nullptr;
+
+		if (pProcPartsTask)
+			pProcPartsTask->release();
+		pProcPartsTask = nullptr;
+
+		if (pDrawProgram)
+			pDrawProgram->release();
 		pDrawProgram = nullptr;
 	}
 };

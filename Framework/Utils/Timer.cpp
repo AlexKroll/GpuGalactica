@@ -37,7 +37,7 @@ void Timer::startMeasure()
 }
 
 
-float Timer::getMeasuredTime()
+double Timer::getMeasuredTime()
 {
 	if (freqPerSec_.QuadPart)
 	{
@@ -48,12 +48,14 @@ float Timer::getMeasuredTime()
 
 		double time = static_cast<double>(tiks.QuadPart);
 		time = time / static_cast<double>(freqPerSec_.QuadPart);
+		if (time > 0.1)  // Limit the FPS to 10.
+			time = 0.1;
+		return time;
 
-		float ftime = static_cast<float>(time);
-		if (ftime > 0.1f)  // Limit the FPS to 10.
-			ftime = 0.1f;
-
-		return ftime;
+		//float ftime = static_cast<float>(time);
+		//if (ftime > 0.1f)  // Limit the FPS to 10.
+		//	ftime = 0.1f;
+		//return ftime;
 	}
 	else
 	{

@@ -44,7 +44,7 @@ private:
 
 	float rotateSpeed_ = 4.0f;
 
-	float zoomSpeed_ = 80.0f;
+	float zoomSpeed_ = 50.0f;
 
 	float moveSpeed_ = 1.3f;
 

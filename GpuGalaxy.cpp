@@ -26,10 +26,6 @@ GpuGalaxy::~GpuGalaxy()
 	pScene_.reset();
 }
 
-//Texture testTexture;
-
-
-
 
 int GpuGalaxy::init(HINSTANCE hInstance)
 {
@@ -49,14 +45,12 @@ int GpuGalaxy::init(HINSTANCE hInstance)
 		pGui_->setButtonBoxData(pGuiTexture_, Rect(492,1,500,9), Rect(502,1,510,9), Rect(492,11,500,19), Rect(502,11,510,19));
 	}
 
-	// Settings of the compute.
-	createSettingsPanel();
-
-//testTexture = pRender_->LoadTextureFromFile("Gui/temp.dds");
-
 	res = initGalaxy();
 	if (res != S_OK)
 		return res;
+
+	// Settings of the compute.
+	createSettingsPanel();
 
 	return S_OK;
 }
@@ -68,14 +62,19 @@ int GpuGalaxy::initGalaxy()
 	pCompute_ = std::shared_ptr<IParallelCompute>(IParallelCompute::getCompute(computeType_));
 	if (nullptr == pCompute_.get())
 		return E_NOINTERFACE;
-	pCompute_->init(pRender_);
+
+	int res = pCompute_->init(pRender_);
+	if (res != S_OK)
+		return res;
 
 	// Main scene with galaxy objects.
-	pScene_ = std::unique_ptr<Scene>(new Scene(pRender_, pInput_.get(), pGui_.get(), pCompute_));
+	pScene_ = std::unique_ptr<Scene>(new Scene(pRender_, pInput_.get(), pGui_, pCompute_));
 	if (nullptr == pScene_.get())
 		return ERROR_UNINITIALIZED;
 
 	pScene_->createGalaxyObjects();
+
+	pScene_->setGalaxyObjectsToDraw(whatObjectsToDraw_);
 
 	return 0;
 }
@@ -98,6 +97,9 @@ void GpuGalaxy::processScene(float elapsedTime)
 {
 	if (pScene_)
 		pScene_->process(elapsedTime);
+
+	if (pCompute_)
+		pCompute_->finish();
 }
 
 
@@ -105,12 +107,9 @@ void GpuGalaxy::renderScene(float elapsedTime)
 {
 	if (pRender_ == nullptr)
 		return;
-//pRender_->drawSprite(Point(400, 200), testTexture, Rect(0,0,-1,-1), 0);
-//pRender_->releaseTexture(testTexture);
 
 	if (pScene_)
 		pScene_->render();
-
 
 	//  Draw FPS one time per second.
 	{
